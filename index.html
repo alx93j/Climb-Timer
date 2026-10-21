@@ -142,7 +142,7 @@ function beep(freq=880,dur=0.16){
   }catch(e){console.warn('Beep error',e)}
 }
 function countdownBeep(second){
-  if(current.cue==='normal'&&second>=1&&second<=3)beep(second===1?1050:820,0.19);
+  if(current.cue==='normal'&&second>=1&&second<=3)beep(800,0.16);
 }
 function start(){
   unlockAudio();
@@ -185,16 +185,16 @@ function advance(fromTimer=false,overrun=0){
   phaseIndex++;
   if(phaseIndex>=phaseList.length){
     running=false;ended=true;clearInterval(timerId);timerId=null;remaining=0;
-    if(fromTimer&&overrun<1500)beep(1200,0.38);
+    if(fromTimer&&overrun<1500)beep(1250,0.38);
     $('timerStatus').textContent='Workout finished';return;
   }
   const next=phaseList[phaseIndex];
   remaining=next.duration;
   if(running){deadline=Date.now()+next.duration*1000-(fromTimer?overrun:0)}
-  lastSecond=Math.ceil(remaining);
+  lastSecond=remaining<=3?Math.ceil(remaining)+1:Math.ceil(remaining);
   if(!fromTimer||overrun<1500){
-    beep(next.type==='work'?1050:550,0.22);
-    if(next.duration<=3&&current.cue==='normal')countdownBeep(next.duration);
+    beep(next.type==='work'?1250:560,0.32);
+    // The countdown starts on the next timer tick; no overlapping beep here.
   }
 }
 function reset(){running=false;clearInterval(timerId);timerId=null;buildPhases();$('timerStatus').textContent='Timer reset';paint()}
