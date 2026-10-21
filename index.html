@@ -92,7 +92,7 @@ const starter={id:'p-1792577692759',name:'Repeat Hangs',hang:30,rest:10,reps:2,s
 let presets=[], current={...starter}, phaseList=[], phaseIndex=0, remaining=0, running=false, ended=false, timerId=null, deadline=0, editId=null, lastSecond=null, audioCtx=null;
 let toastTimeout;function showConfirmation(message){const t=$('confirmToast');t.textContent=message;t.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.remove('visible'),2200)}
 function safeInt(id,min,max){let v=Number($(id).value);if(!Number.isFinite(v))v=min;return Math.max(min,Math.min(max,Math.round(v)))}
-function load(){try{presets=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{presets=[]}if(!Array.isArray(presets))presets=[];if(!presets.length)presets=[{...starter}];presets=presets.map(p=>p&&p.id===starter.id?{...p,rest:10}:p);try{const a=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'null');if(a&&a.name)current=normalize(a.id===starter.id?{...a,rest:10}:a)}catch{}persist();renderPresets();syncBuilder();buildPhases();paint()}
+function load(){try{presets=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{presets=[]}if(!Array.isArray(presets))presets=[];if(!presets.length)presets=[{...starter}];presets=presets.map(p=>p&&(p.id===starter.id||p.name==='Repeat Hangs')?{...p,rest:10,lead:10}:p);try{const a=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'null');if(a&&a.name)current=normalize((a.id===starter.id||a.name==='Repeat Hangs')?{...a,rest:10,lead:10}:a)}catch{}persist();renderPresets();syncBuilder();buildPhases();paint()}
 function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify(presets))}
 function normalize(x){return {id:String(x.id||('p-'+Date.now())),name:String(x.name||'Climbing workout').slice(0,60),hang:clamp(x.hang,1,3600,7),rest:clamp(x.rest,0,3600,3),reps:clamp(x.reps,1,100,6),sets:clamp(x.sets,1,50,3),setRest:clamp(x.setRest,0,7200,120),lead:clamp(x.lead,0,60,10),cue:['normal','minimal','off'].includes(x.cue)?x.cue:'normal'}}
 function clamp(v,min,max,def){v=Number(v);return Number.isFinite(v)?Math.max(min,Math.min(max,Math.round(v))):def}
@@ -141,9 +141,18 @@ function beep(freq=880,dur=0.16){
     osc.onended=()=>{osc.disconnect();gain.disconnect()};
   }catch(e){console.warn('Beep error',e)}
 }
+// All countdown tones are identical. A phase transition is a separate cue at 0.
 function countdownBeep(second){
-  if(current.cue==='normal'&&second>=1&&second<=3)beep(800,0.16);
+  if(current.cue==='normal' && second>=1 && second<=3)beep(740,0.14);
 }
+// Track boundaries crossed, rather than relying on one exact animation tick.
+function playCountdownCrossings(previous, now){
+  if(current.cue!=='normal')return;
+  for(const boundary of [3,2,1]){
+    if(previous>boundary && now<=boundary && now>0)countdownBeep(boundary);
+  }
+}
+
 function start(){
   unlockAudio();
   if(ended)buildPhases();
@@ -152,9 +161,9 @@ function start(){
   clearInterval(timerId);
   running=true;
   deadline=Date.now()+remaining*1000;
-  lastSecond=Math.ceil(remaining);
-  // On a short phase, 3 is heard at the start instead of being skipped.
-  if(lastSecond<=3)countdownBeep(lastSecond);
+  lastSecond=remaining;
+  // At the beginning of a 3-second phase, sound the first countdown cue.
+  if(remaining<=3 && remaining>0)countdownBeep(Math.ceil(remaining));
   tick();timerId=setInterval(tick,80);paint();
 }
 function pause(){
@@ -164,6 +173,8 @@ function pause(){
 function tick(){
   if(!running)return;
   const now=Date.now();
+  const oldRemaining=remaining;
+  const phaseAtTick=phaseIndex;
   // Carry elapsed time into subsequent phases instead of restarting a late phase.
   let hops=0;
   while(running&&now>=deadline&&hops++<phaseList.length+1){
@@ -173,11 +184,10 @@ function tick(){
   if(!running){paint();return}
   remaining=Math.max(0,(deadline-now)/1000);
   const sec=Math.ceil(remaining);
-  if(sec!==lastSecond){
-    // If the browser skipped ticks, play only the current second, not a burst.
-    countdownBeep(sec);
-    lastSecond=sec;
-  }
+  // Only play countdown cues when crossing 3, 2, or 1 seconds.
+  // The transition beep is deliberately played only at zero.
+  if(phaseIndex===phaseAtTick)playCountdownCrossings(oldRemaining,remaining);
+  lastSecond=remaining;
   paint();
 }
 function advance(fromTimer=false,overrun=0){
@@ -191,10 +201,10 @@ function advance(fromTimer=false,overrun=0){
   const next=phaseList[phaseIndex];
   remaining=next.duration;
   if(running){deadline=Date.now()+next.duration*1000-(fromTimer?overrun:0)}
-  lastSecond=remaining<=3?Math.ceil(remaining)+1:Math.ceil(remaining);
+  lastSecond=remaining;
   if(!fromTimer||overrun<1500){
     beep(next.type==='work'?1250:560,0.32);
-    // The countdown starts on the next timer tick; no overlapping beep here.
+    // This distinct transition cue happens at 0, never at 1.
   }
 }
 function reset(){running=false;clearInterval(timerId);timerId=null;buildPhases();$('timerStatus').textContent='Timer reset';paint()}
