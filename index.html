@@ -99,14 +99,104 @@ function clamp(v,min,max,def){v=Number(v);return Number.isFinite(v)?Math.max(min
 function syncBuilder(){for(const [id,key] of [['name','name'],['hang','hang'],['rest','rest'],['reps','reps'],['sets','sets'],['setRest','setRest'],['lead','lead'],['cue','cue']])$(id).value=current[key]}
 function readBuilder(){return normalize({id:editId||('p-'+Date.now()),name:$('name').value.trim()||'Climbing workout',hang:safeInt('hang',1,3600),rest:safeInt('rest',0,3600),reps:safeInt('reps',1,100),sets:safeInt('sets',1,50),setRest:safeInt('setRest',0,7200),lead:safeInt('lead',0,60),cue:$('cue').value})}
 function summary(w){return `${w.hang}s time · ${w.rest}s rest · ${w.reps} reps · ${w.sets} sets · ${w.setRest>=60?`${Math.floor(w.setRest/60)}m${w.setRest%60?` ${w.setRest%60}s`:''}`:`${w.setRest}s`} between sets`}
-function buildPhases(){phaseList=[];if(current.lead)phaseList.push({label:'GET READY',duration:current.lead,type:'lead',detail:'Get into position'});for(let s=1;s<=current.sets;s++){for(let r=1;r<=current.reps;r++){phaseList.push({label:'TIME',duration:current.hang,type:'work',detail:`Set ${s}/${current.sets} · Rep ${r}/${current.reps}`});if(current.rest>0&&(r<current.reps||s<current.sets))phaseList.push({label:'REST',duration:current.rest,type:'rest',detail:`After rep ${r} · Set ${s}/${current.sets}`})}if(s<current.sets&&current.setRest>0)phaseList.push({label:'SET REST',duration:current.setRest,type:'setRest',detail:`Recover before set ${s+1}/${current.sets}`})}phaseIndex=0;remaining=phaseList[0]?.duration||0;ended=false;lastSecond=null}
+function buildPhases(){phaseList=[];if(current.lead)phaseList.push({label:'GET READY',duration:current.lead,type:'lead',detail:'Get into position'});for(let s=1;s<=current.sets;s++){for(let r=1;r<=current.reps;r++){phaseList.push({label:'TIME',duration:current.hang,type:'work',detail:`Set ${s}/${current.sets} · Rep ${r}/${current.reps}`});if(current.rest>0&&(r<current.reps))phaseList.push({label:'REST',duration:current.rest,type:'rest',detail:`After rep ${r} · Set ${s}/${current.sets}`})}if(s<current.sets&&current.setRest>0)phaseList.push({label:'SET REST',duration:current.setRest,type:'setRest',detail:`Recover before set ${s+1}/${current.sets}`})}phaseIndex=0;remaining=phaseList[0]?.duration||0;ended=false;lastSecond=null}
 function paint(){const p=phaseList[phaseIndex];$('phase').textContent=ended?'COMPLETE':(p?.label||'READY');$('clock').textContent=fmt(Math.ceil(remaining));$('detail').textContent=ended?'Session complete. Nice work.':(p?.detail||'Choose a workout and press start');$('bar').style.width=p?`${Math.max(0,Math.min(1,1-remaining/p.duration))*100}%`:'0%';$('startBtn').textContent=running?'Pause':(phaseIndex===0&&remaining===(phaseList[0]?.duration||0)?'Start':'Resume');$('skipBtn').disabled=ended;$('currentName').textContent=current.name;$('workoutSummary').textContent=summary(current);$('stepDots').innerHTML=phaseList.slice(0,14).map((x,i)=>`<span class="step ${i===phaseIndex?'current':''}">${i+1}. ${x.label}</span>`).join('')+(phaseList.length>14?`<span class="step">+${phaseList.length-14} phases</span>`:'');}
 function fmt(s){s=Math.max(0,s|0);return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
-function beep(freq=880,dur=.12){if(current.cue==='off')return;try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=freq;g.gain.setValueAtTime(.0001,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.65,audioCtx.currentTime+.008);g.gain.setValueAtTime(.65,audioCtx.currentTime+Math.max(.009,dur-.025));g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+dur);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+dur+.02)}catch{}}
-function start(){if(ended){buildPhases();paint()}if(!phaseList.length)return;running=true;deadline=Date.now()+remaining*1000;lastSecond=Math.ceil(remaining);if(audioCtx?.state==='suspended')audioCtx.resume().catch(()=>{});tick();timerId=setInterval(tick,100);paint()}
-function pause(){running=false;clearInterval(timerId);timerId=null;remaining=Math.max(0,(deadline-Date.now())/1000);paint()}
-function tick(){if(!running)return;remaining=Math.max(0,(deadline-Date.now())/1000);const sec=Math.ceil(remaining);if(sec!==lastSecond){if(current.cue==='normal'&&sec>=1&&sec<=3&&sec>0)beep(900,.16);lastSecond=sec}if(remaining<=0){beep(phaseList[phaseIndex]?.type==='work'?660:990,.2);advance()}paint()}
-function advance(){phaseIndex++;if(phaseIndex>=phaseList.length){running=false;ended=true;clearInterval(timerId);timerId=null;remaining=0;beep(1100,.35);$('timerStatus').textContent='Workout finished';return}remaining=phaseList[phaseIndex].duration;deadline=Date.now()+remaining*1000;lastSecond=Math.ceil(remaining);if(current.cue!=='off')beep(phaseList[phaseIndex].type==='work'?880:520,.1)}
+// Audio is unlocked synchronously by the Start tap (required by iOS Safari).
+// A single master gain controls loudness; individual tones use a short envelope.
+let masterGain=null, audioReady=false, nextToneAt=0;
+function unlockAudio(){
+  if(current.cue==='off')return;
+  try{
+    if(!audioCtx){
+      const AudioContextClass=window.AudioContext||window.webkitAudioContext;
+      if(!AudioContextClass)throw Error('Web Audio unsupported');
+      audioCtx=new AudioContextClass();
+      masterGain=audioCtx.createGain();masterGain.gain.value=0.9;
+      masterGain.connect(audioCtx.destination);
+    }
+    if(audioCtx.state!=='running')audioCtx.resume().catch(()=>{});
+    // A silent oscillator initiated within the user gesture unlocks iOS audio.
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    g.gain.value=0;o.connect(g);g.connect(masterGain);
+    o.start();o.stop(audioCtx.currentTime+0.015);
+    o.onended=()=>{o.disconnect();g.disconnect()};
+    audioReady=true;
+  }catch(e){$('timerStatus').textContent='Audio unavailable: '+e.message}
+}
+function beep(freq=880,dur=0.16){
+  if(current.cue==='off'||!audioCtx||!audioReady)return;
+  try{
+    if(audioCtx.state!=='running'){audioCtx.resume().catch(()=>{});return}
+    const t=Math.max(audioCtx.currentTime+0.005,nextToneAt);
+    nextToneAt=t+dur+0.015;
+    const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+    osc.type='square';osc.frequency.setValueAtTime(freq,t);
+    gain.gain.setValueAtTime(0.0001,t);
+    gain.gain.linearRampToValueAtTime(0.34,t+0.008);
+    gain.gain.setValueAtTime(0.34,t+Math.max(0.009,dur-0.035));
+    gain.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    osc.connect(gain);gain.connect(masterGain);
+    osc.start(t);osc.stop(t+dur+0.01);
+    osc.onended=()=>{osc.disconnect();gain.disconnect()};
+  }catch(e){console.warn('Beep error',e)}
+}
+function countdownBeep(second){
+  if(current.cue==='normal'&&second>=1&&second<=3)beep(second===1?1050:820,0.19);
+}
+function start(){
+  unlockAudio();
+  if(ended)buildPhases();
+  if(!phaseList.length)return;
+  if(running)return;
+  clearInterval(timerId);
+  running=true;
+  deadline=Date.now()+remaining*1000;
+  lastSecond=Math.ceil(remaining);
+  // On a short phase, 3 is heard at the start instead of being skipped.
+  if(lastSecond<=3)countdownBeep(lastSecond);
+  tick();timerId=setInterval(tick,80);paint();
+}
+function pause(){
+  if(running)remaining=Math.max(0,(deadline-Date.now())/1000);
+  running=false;clearInterval(timerId);timerId=null;paint();
+}
+function tick(){
+  if(!running)return;
+  const now=Date.now();
+  // Carry elapsed time into subsequent phases instead of restarting a late phase.
+  let hops=0;
+  while(running&&now>=deadline&&hops++<phaseList.length+1){
+    const overrun=now-deadline;
+    advance(true,overrun);
+  }
+  if(!running){paint();return}
+  remaining=Math.max(0,(deadline-now)/1000);
+  const sec=Math.ceil(remaining);
+  if(sec!==lastSecond){
+    // If the browser skipped ticks, play only the current second, not a burst.
+    countdownBeep(sec);
+    lastSecond=sec;
+  }
+  paint();
+}
+function advance(fromTimer=false,overrun=0){
+  if(ended)return;
+  phaseIndex++;
+  if(phaseIndex>=phaseList.length){
+    running=false;ended=true;clearInterval(timerId);timerId=null;remaining=0;
+    if(fromTimer&&overrun<1500)beep(1200,0.38);
+    $('timerStatus').textContent='Workout finished';return;
+  }
+  const next=phaseList[phaseIndex];
+  remaining=next.duration;
+  if(running){deadline=Date.now()+next.duration*1000-(fromTimer?overrun:0)}
+  lastSecond=Math.ceil(remaining);
+  if(!fromTimer||overrun<1500){
+    beep(next.type==='work'?1050:550,0.22);
+    if(next.duration<=3&&current.cue==='normal')countdownBeep(next.duration);
+  }
+}
 function reset(){running=false;clearInterval(timerId);timerId=null;buildPhases();$('timerStatus').textContent='Timer reset';paint()}
 function activate(w){pause();current=normalize(w);localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();$('timerStatus').textContent='✓ Workout loaded: '+current.name;showConfirmation('✓ Workout loaded');paint();showTab('timer')}
 function saveWorkout(){const w=readBuilder();const i=presets.findIndex(p=>p.id===editId);if(i>=0)presets[i]=w;else presets.unshift(w);current=w;editId=null;persist();localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();renderPresets();paint();$('builderStatus').textContent='✓ Saved and applied';showTab('timer');$('timerStatus').textContent='✓ Settings saved and applied';showConfirmation('✓ Settings saved and applied')}
@@ -119,14 +209,14 @@ function decode(str){str=str.trim();if(str.startsWith('{'))return JSON.parse(str
 function share(w){$('shareArea').classList.remove('hidden');$('shareCode').value=encode(w);$('presetStatus').textContent='Share code generated.'}
 function download(name,content,type='application/json'){const a=document.createElement('a');const u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
-$('startBtn').addEventListener('click',()=>running?pause():start());$('resetBtn').addEventListener('click',reset);$('skipBtn').addEventListener('click',()=>{if(ended)return;if(running){remaining=Math.max(0,(deadline-Date.now())/1000)}advance();paint()});
+$('startBtn').addEventListener('click',()=>running?pause():start());$('resetBtn').addEventListener('click',reset);$('skipBtn').addEventListener('click',()=>{if(ended)return;if(running){remaining=Math.max(0,(deadline-Date.now())/1000)}advance(false,0);paint()});
 $('saveWorkout').addEventListener('click',saveWorkout);$('cancelEdit').addEventListener('click',()=>{editId=null;syncBuilder();showTab('timer')});$('editCurrent').addEventListener('click',()=>editWorkout(current));
 $('presetList').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const p=presets.find(x=>x.id===b.dataset.load||x.id===b.dataset.edit||x.id===b.dataset.share||x.id===b.dataset.del);if(!p)return;if(b.dataset.load)activate(p);if(b.dataset.edit)editWorkout(p);if(b.dataset.share){share(p);$('shareArea').scrollIntoView({behavior:'smooth',block:'nearest'})}if(b.dataset.del){if(presets.length===1){$('presetStatus').textContent='Keep at least one preset.';return}presets=presets.filter(x=>x.id!==p.id);persist();renderPresets();$('presetStatus').textContent='Preset deleted.'}});
 $('shareCurrent').addEventListener('click',()=>share(current));$('copyShare').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('shareCode').value);$('presetStatus').textContent='Copied. Send the code in a message.'}catch{$('shareCode').select();$('presetStatus').textContent='Select and copy the code manually.'}});
 $('exportAll').addEventListener('click',()=>download('climb-timer-presets.json',JSON.stringify({format:'climb-timer-presets-v1',presets},null,2)));
 $('importTextBtn').addEventListener('click',()=>$('importArea').classList.toggle('hidden'));
 $('doImport').addEventListener('click',()=>{try{const raw=$('importCode').value.trim();let value=decode(raw);let incoming;if(value.format==='climb-timer-presets-v1'&&Array.isArray(value.presets))incoming=value.presets.map(normalize);else incoming=[normalize(value)];if(!incoming.length)throw Error('No presets found.');for(const w of incoming){w.id='p-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);const same=presets.findIndex(p=>p.name.toLowerCase()===w.name.toLowerCase());if(same>=0)presets[same]=w;else presets.unshift(w)}persist();renderPresets();$('presetStatus').textContent=`Imported ${incoming.length} preset${incoming.length===1?'':'s'}.`; $('importCode').value=''}catch(e){$('presetStatus').textContent='Import failed: '+e.message}});
-document.addEventListener('visibilitychange',()=>{if(!running)return;if(document.hidden){/* deadline-based timing keeps elapsed time measurable */}else{remaining=Math.max(0,(deadline-Date.now())/1000);if(remaining<=0)tick();else paint()}});
+document.addEventListener('visibilitychange',()=>{if(!running)return;if(document.hidden){/* deadline-based timing keeps elapsed time measurable */}else{remaining=Math.max(0,(deadline-Date.now())/1000);tick()}});
 window.addEventListener('pagehide',()=>{if(running){try{localStorage.setItem('climbTimerRun_v1',JSON.stringify({current,phaseIndex,deadline}))}catch{}}});
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 if(location.protocol==='file:')$('offlineBadge').textContent='LOCAL PREVIEW';
