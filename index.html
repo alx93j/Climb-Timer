@@ -36,6 +36,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 <button class="btn" id="resetBtn">Reset</button><button class="btn primary" id="startBtn">Start</button><button class="btn" id="skipBtn">Skip</button>
 </div>
 <div class="status" id="timerStatus" aria-live="polite"></div>
+<div class="status" id="wakeStatus" role="status" aria-live="polite">Screen awake: starts with timer</div>
 </div>
 <div class="panel">
 <div class="row"><div><h2>Current workout</h2><div id="currentName" class="muted">Repeat Hangs</div></div><button class="btn mini" id="editCurrent">Edit</button></div>
@@ -64,7 +65,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 
 <section id="presetsView" class="hidden">
 <div class="panel">
-<h2>Saved presets</h2>
+<div class="row" style="margin-bottom:12px"><h2 style="margin:0">Saved presets</h2><button class="btn primary mini" id="addPreset" type="button">+ Add preset</button></div>
 <p>Presets stay on this device. Export a preset as a shareable text code or JSON file; send it to another climber, who can import it into their own copy.</p>
 <div id="presetList"></div>
 <div class="row" style="margin-top:12px"><button class="btn" id="exportAll">Export all</button><button class="btn" id="importTextBtn">Import code</button></div>
@@ -153,6 +154,37 @@ function playCountdownCrossings(previous, now){
   }
 }
 
+// Screen Wake Lock: available on supported HTTPS iOS Safari/Home Screen apps.
+let wakeLock=null, wakeRequest=0;
+function wakeStatus(message){$('wakeStatus').textContent=message}
+async function acquireWakeLock(){
+  if(!running||document.visibilityState!=='visible')return;
+  if(!('wakeLock' in navigator)){wakeStatus('Screen awake unavailable — adjust iPhone Auto-Lock');return}
+  if(wakeLock){wakeStatus('☀ Screen awake');return}
+  const request=++wakeRequest;
+  wakeStatus('Requesting screen awake…');
+  try{
+    const sentinel=await navigator.wakeLock.request('screen');
+    if(request!==wakeRequest||!running||document.visibilityState!=='visible'){
+      await sentinel.release();return;
+    }
+    wakeLock=sentinel;
+    wakeStatus('☀ Screen awake');
+    sentinel.addEventListener('release',()=>{
+      if(wakeLock!==sentinel)return;
+      wakeLock=null;
+      wakeStatus(running?'Screen awake interrupted':'Screen awake off');
+    });
+  }catch(e){
+    if(request===wakeRequest)wakeStatus('Screen awake unavailable — check Low Power Mode / Auto-Lock');
+  }
+}
+function releaseWakeLock(){
+  ++wakeRequest;
+  const held=wakeLock;wakeLock=null;
+  if(held)held.release().catch(()=>{});
+  wakeStatus('Screen awake off');
+}
 function start(){
   unlockAudio();
   if(ended)buildPhases();
@@ -160,6 +192,7 @@ function start(){
   if(running)return;
   clearInterval(timerId);
   running=true;
+  acquireWakeLock();
   deadline=Date.now()+remaining*1000;
   lastSecond=remaining;
   // At the beginning of a 3-second phase, sound the first countdown cue.
@@ -168,7 +201,7 @@ function start(){
 }
 function pause(){
   if(running)remaining=Math.max(0,(deadline-Date.now())/1000);
-  running=false;clearInterval(timerId);timerId=null;paint();
+  running=false;clearInterval(timerId);timerId=null;releaseWakeLock();paint();
 }
 function tick(){
   if(!running)return;
@@ -194,7 +227,7 @@ function advance(fromTimer=false,overrun=0){
   if(ended)return;
   phaseIndex++;
   if(phaseIndex>=phaseList.length){
-    running=false;ended=true;clearInterval(timerId);timerId=null;remaining=0;
+    running=false;ended=true;clearInterval(timerId);timerId=null;remaining=0;releaseWakeLock();
     if(fromTimer&&overrun<1500)beep(1250,0.38);
     $('timerStatus').textContent='Workout finished';return;
   }
@@ -207,26 +240,27 @@ function advance(fromTimer=false,overrun=0){
     // This distinct transition cue happens at 0, never at 1.
   }
 }
-function reset(){running=false;clearInterval(timerId);timerId=null;buildPhases();$('timerStatus').textContent='Timer reset';paint()}
+function reset(){running=false;clearInterval(timerId);timerId=null;releaseWakeLock();buildPhases();$('timerStatus').textContent='Timer reset';paint()}
 function activate(w){pause();current=normalize(w);localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();$('timerStatus').textContent='✓ Workout loaded: '+current.name;showConfirmation('✓ Workout loaded');paint();showTab('timer')}
-function saveWorkout(){const w=readBuilder();const i=presets.findIndex(p=>p.id===editId);if(i>=0)presets[i]=w;else presets.unshift(w);current=w;editId=null;persist();localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();renderPresets();paint();$('builderStatus').textContent='✓ Saved and applied';showTab('timer');$('timerStatus').textContent='✓ Settings saved and applied';showConfirmation('✓ Settings saved and applied')}
+function saveWorkout(){const w=readBuilder();const i=presets.findIndex(p=>p.id===editId);if(i>=0)presets[i]=w;else presets.unshift(w);current=w;editId=null;persist();localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();renderPresets();paint();$('builderStatus').textContent='✓ Saved and applied';$('saveWorkout').textContent='Save workout';showTab('timer');$('timerStatus').textContent='✓ Settings saved and applied';showConfirmation('✓ Settings saved and applied')}
 function renderPresets(){$('presetList').innerHTML=presets.map(p=>`<div class="preset"><div><strong>${esc(p.name)}</strong><small>${esc(summary(p))}</small></div><div class="row" style="flex:0 0 auto"><button class="btn mini primary" data-load="${esc(p.id)}">Load</button><button class="btn mini" data-share="${esc(p.id)}">Share</button><button class="btn mini" data-edit="${esc(p.id)}">Edit</button><button class="btn mini danger" data-del="${esc(p.id)}">×</button></div></div>`).join('');}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showTab(tab){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));['timer','builder','presets'].forEach(t=>$(t+'View').classList.toggle('hidden',t!==tab));if(tab==='presets')renderPresets()}
-function editWorkout(w){pause();editId=w.id;current=normalize(w);syncBuilder();showTab('builder');$('builderStatus').textContent='Editing preset. Save to update it.'}
+function editWorkout(w){$('saveWorkout').textContent='Save workout';pause();editId=w.id;current=normalize(w);syncBuilder();showTab('builder');$('builderStatus').textContent='Editing preset. Save to update it.'}
 function encode(w){const bytes=new TextEncoder().encode(JSON.stringify(normalize(w)));let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));return 'CLIMB1-'+btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function decode(str){str=str.trim();if(str.startsWith('{'))return JSON.parse(str);if(!str.startsWith('CLIMB1-'))throw Error('Unrecognized code. Paste a CLIMB1 code or exported JSON.');let b=str.slice(7).replace(/-/g,'+').replace(/_/g,'/');b+='='.repeat((4-b.length%4)%4);const bin=atob(b);const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return JSON.parse(new TextDecoder().decode(bytes))}
 function share(w){$('shareArea').classList.remove('hidden');$('shareCode').value=encode(w);$('presetStatus').textContent='Share code generated.'}
 function download(name,content,type='application/json'){const a=document.createElement('a');const u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
 $('startBtn').addEventListener('click',()=>running?pause():start());$('resetBtn').addEventListener('click',reset);$('skipBtn').addEventListener('click',()=>{if(ended)return;if(running){remaining=Math.max(0,(deadline-Date.now())/1000)}advance(false,0);paint()});
-$('saveWorkout').addEventListener('click',saveWorkout);$('cancelEdit').addEventListener('click',()=>{editId=null;syncBuilder();showTab('timer')});$('editCurrent').addEventListener('click',()=>editWorkout(current));
+$('addPreset').addEventListener('click',()=>{editId=null;syncBuilder();$('name').value='New workout';$('builderStatus').textContent='Create a new preset. Your current workout stays unchanged until you save.';$('saveWorkout').textContent='Save new preset';showTab('builder');$('name').focus();});
+$('saveWorkout').addEventListener('click',saveWorkout);$('cancelEdit').addEventListener('click',()=>{editId=null;$('saveWorkout').textContent='Save workout';syncBuilder();showTab('timer')});$('editCurrent').addEventListener('click',()=>editWorkout(current));
 $('presetList').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const p=presets.find(x=>x.id===b.dataset.load||x.id===b.dataset.edit||x.id===b.dataset.share||x.id===b.dataset.del);if(!p)return;if(b.dataset.load)activate(p);if(b.dataset.edit)editWorkout(p);if(b.dataset.share){share(p);$('shareArea').scrollIntoView({behavior:'smooth',block:'nearest'})}if(b.dataset.del){if(presets.length===1){$('presetStatus').textContent='Keep at least one preset.';return}presets=presets.filter(x=>x.id!==p.id);persist();renderPresets();$('presetStatus').textContent='Preset deleted.'}});
 $('shareCurrent').addEventListener('click',()=>share(current));$('copyShare').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('shareCode').value);$('presetStatus').textContent='Copied. Send the code in a message.'}catch{$('shareCode').select();$('presetStatus').textContent='Select and copy the code manually.'}});
 $('exportAll').addEventListener('click',()=>download('climb-timer-presets.json',JSON.stringify({format:'climb-timer-presets-v1',presets},null,2)));
 $('importTextBtn').addEventListener('click',()=>$('importArea').classList.toggle('hidden'));
 $('doImport').addEventListener('click',()=>{try{const raw=$('importCode').value.trim();let value=decode(raw);let incoming;if(value.format==='climb-timer-presets-v1'&&Array.isArray(value.presets))incoming=value.presets.map(normalize);else incoming=[normalize(value)];if(!incoming.length)throw Error('No presets found.');for(const w of incoming){w.id='p-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);const same=presets.findIndex(p=>p.name.toLowerCase()===w.name.toLowerCase());if(same>=0)presets[same]=w;else presets.unshift(w)}persist();renderPresets();$('presetStatus').textContent=`Imported ${incoming.length} preset${incoming.length===1?'':'s'}.`; $('importCode').value=''}catch(e){$('presetStatus').textContent='Import failed: '+e.message}});
-document.addEventListener('visibilitychange',()=>{if(!running)return;if(document.hidden){/* deadline-based timing keeps elapsed time measurable */}else{remaining=Math.max(0,(deadline-Date.now())/1000);tick()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&running)acquireWakeLock();else if(document.visibilityState!=='visible'){wakeLock=null;wakeStatus('Screen awake paused while app is hidden')}if(!running)return;if(document.hidden){/* deadline-based timing keeps elapsed time measurable */}else{remaining=Math.max(0,(deadline-Date.now())/1000);tick()}});
 window.addEventListener('pagehide',()=>{if(running){try{localStorage.setItem('climbTimerRun_v1',JSON.stringify({current,phaseIndex,deadline}))}catch{}}});
 if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 if(location.protocol==='file:')$('offlineBadge').textContent='LOCAL PREVIEW';
