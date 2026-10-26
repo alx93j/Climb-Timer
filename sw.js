@@ -1,6 +1,6 @@
 // Offline PWA update policy: pre-cache while installing, then wait for explicit
 // approval from the app before taking over an existing open workout.
-const CACHE_NAME='climb-timer-v12';
+const CACHE_NAME='climb-timer-v12-1';
 const FILES=['./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(FILES)));

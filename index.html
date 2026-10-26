@@ -105,7 +105,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 </section>
 <div id="updateBanner" class="panel hidden" role="status" style="position:fixed;left:16px;right:16px;bottom:16px;z-index:98;max-width:648px;margin:auto"><div class="row"><span>New version available</span><button id="reloadUpdate" class="btn primary mini">Update</button></div></div>
 <div id="confirmToast" class="confirm-toast" role="status" aria-live="polite"></div>
-<div class="footer">CLIMB TIMER v12 · Local presets · No account required</div>
+<div class="footer">CLIMB TIMER v12.1 · Local presets · No account required</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -128,12 +128,23 @@ function clamp(v,min,max,def){v=Number(v);return Number.isFinite(v)?Math.max(min
 function syncBuilder(workout=current){for(const [id,key] of [['name','name'],['hang','hang'],['rest','rest'],['reps','reps'],['sets','sets'],['setRest','setRest'],['lead','lead'],['cue','cue']])$(id).value=workout[key]}
 function readBuilder(){return normalize({id:editId||newPresetId(),name:$('name').value.trim()||'Climbing workout',hang:safeInt('hang',1,3600),rest:safeInt('rest',0,3600),reps:safeInt('reps',1,100),sets:safeInt('sets',1,50),setRest:safeInt('setRest',0,7200),lead:safeInt('lead',0,60),cue:$('cue').value})}
 function summary(w){return `${w.hang}s time · ${w.rest}s rest · ${w.reps} reps · ${w.sets} sets · ${w.setRest>=60?`${Math.floor(w.setRest/60)}m${w.setRest%60?` ${w.setRest%60}s`:''}`:`${w.setRest}s`} between sets`}
-function buildPhases(){phaseList=[];if(current.lead)phaseList.push({label:'GET READY',duration:current.lead,type:'lead',detail:'Get into position'});for(let s=1;s<=current.sets;s++){for(let r=1;r<=current.reps;r++){phaseList.push({label:'TIME',duration:current.hang,type:'work',detail:`Set ${s}/${current.sets} · Rep ${r}/${current.reps}`});if(current.rest>0&&(r<current.reps))phaseList.push({label:'REST',duration:current.rest,type:'rest',detail:`After rep ${r} · Set ${s}/${current.sets}`})}if(s<current.sets&&current.setRest>0)phaseList.push({label:'SET REST',duration:current.setRest,type:'setRest',detail:`Recover before set ${s+1}/${current.sets}`})}phaseIndex=0;remaining=phaseList[0]?.duration||0;ended=false;lastSecond=null;phaseNeedsStartCue=false}
+function buildPhases(){countdownAwaitingAudio=false;phaseList=[];if(current.lead)phaseList.push({label:'GET READY',duration:current.lead,type:'lead',detail:'Get into position'});for(let s=1;s<=current.sets;s++){for(let r=1;r<=current.reps;r++){phaseList.push({label:'TIME',duration:current.hang,type:'work',detail:`Set ${s}/${current.sets} · Rep ${r}/${current.reps}`});if(current.rest>0&&(r<current.reps))phaseList.push({label:'REST',duration:current.rest,type:'rest',detail:`After rep ${r} · Set ${s}/${current.sets}`})}if(s<current.sets&&current.setRest>0)phaseList.push({label:'SET REST',duration:current.setRest,type:'setRest',detail:`Recover before set ${s+1}/${current.sets}`})}phaseIndex=0;remaining=phaseList[0]?.duration||0;ended=false;lastSecond=null;phaseNeedsStartCue=false}
 function paint(){const p=phaseList[phaseIndex];$('phase').textContent=ended?'COMPLETE':(p?.label||'READY');$('clock').textContent=fmt(Math.ceil(remaining));$('detail').textContent=ended?'Session complete. Nice work.':(p?.detail||'Choose a workout and press start');$('bar').style.width=p?`${Math.max(0,Math.min(1,1-remaining/p.duration))*100}%`:'0%';$('startBtn').textContent=running?'Pause':(phaseIndex===0&&remaining===(phaseList[0]?.duration||0)?'Start':'Resume');$('skipBtn').disabled=ended;$('currentName').textContent=current.name;$('workoutSummary').textContent=summary(current);$('stepDots').innerHTML=phaseList.slice(Math.max(0,phaseIndex-1),Math.min(phaseList.length,phaseIndex+3)).map((x,i)=>{const n=i+Math.max(0,phaseIndex-1);return `<span class="step ${n===phaseIndex?'current':''}">${n+1}. ${x.label}</span>`}).join('');refreshUpdateNotice();}
 function fmt(s){s=Math.max(0,s|0);return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 // Audio is unlocked synchronously by the Start tap (required by iOS Safari).
 // A single master gain controls loudness; individual tones use a short envelope.
 let masterGain=null, audioReady=false, scheduledTones=[];
+let audioResumePromise=null, countdownAwaitingAudio=false;
+function onAudioRunning(){
+  audioReady=!!audioCtx&&audioCtx.state==='running';
+  // On a cold iOS launch, Start schedules before resume() finishes.
+  // Rebuild ONLY that missing countdown once the audio clock is actually running.
+  if(audioReady&&countdownAwaitingAudio&&running&&!document.hidden){
+    countdownAwaitingAudio=false;
+    remaining=Math.max(0,(deadline-Date.now())/1000);
+    schedulePhaseCountdown();
+  }
+}
 function unlockAudio(){
   if(current.cue==='off')return;
   try{
@@ -143,14 +154,27 @@ function unlockAudio(){
       audioCtx=new AudioContextClass();
       masterGain=audioCtx.createGain();masterGain.gain.value=0.8;
       masterGain.connect(audioCtx.destination);
+      // Safari can change audio state without a successful resume() callback.
+      audioCtx.onstatechange=()=>onAudioRunning();
     }
-    if(audioCtx.state!=='running')audioCtx.resume().catch(()=>{});
+    if(audioCtx.state!=='running'&&!audioResumePromise){
+      // Call resume() directly in the button's click handler: Safari requires a gesture.
+      const request=audioCtx.resume();
+      audioResumePromise=Promise.resolve(request).then(()=>{
+        onAudioRunning();
+        if(!audioReady&&running&&current.cue!=='off')$('timerStatus').textContent='Sound unavailable — tap Pause, then Resume';
+      }).catch(()=>{
+        audioReady=false;
+        if(running&&current.cue!=='off')$('timerStatus').textContent='Sound blocked — tap Pause, then Resume';
+      }).finally(()=>{audioResumePromise=null});
+    }
+    // Prime Web Audio without an audible click while the user gesture is active.
     const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
     gain.gain.value=0;osc.connect(gain);gain.connect(masterGain);
     osc.start();osc.stop(audioCtx.currentTime+0.012);
     osc.onended=()=>{osc.disconnect();gain.disconnect()};
-    audioReady=true;
-  }catch(e){$('timerStatus').textContent='Audio unavailable: '+e.message}
+    audioReady=audioCtx.state==='running';
+  }catch(e){audioReady=false;$('timerStatus').textContent='Audio unavailable: '+e.message}
 }
 function cancelScheduledAudio(){
   for(const tone of scheduledTones){
@@ -180,6 +204,11 @@ function beep(freq=880,dur=0.16,delay=0){
 // All countdown cues use the same pitch, envelope and loudness.
 function schedulePhaseCountdown(){
   if(!running||current.cue!=='normal'||document.hidden)return;
+  if(!audioReady||!audioCtx||audioCtx.state!=='running'){
+    countdownAwaitingAudio=true;
+    return;
+  }
+  countdownAwaitingAudio=false;
   for(const second of [3,2,1]){
     if(remaining+0.0001>=second){
       beep(740,0.14,Math.max(0,remaining-second));
@@ -239,6 +268,7 @@ function start(){
   timerId=setInterval(tick,80);paint();
 }
 function pause(){
+  countdownAwaitingAudio=false;
   if(running)remaining=Math.max(0,(deadline-Date.now())/1000);
   running=false;clearInterval(timerId);timerId=null;cancelScheduledAudio();releaseWakeLock();paint();
 }
@@ -279,7 +309,7 @@ function advance(fromTimer=false,overrun=0,audible=true){
   }
   if(running&&!fromTimer)schedulePhaseCountdown();
 }
-function reset(){running=false;clearInterval(timerId);timerId=null;cancelScheduledAudio();releaseWakeLock();buildPhases();$('timerStatus').textContent='Timer reset';paint()}
+function reset(){countdownAwaitingAudio=false;running=false;clearInterval(timerId);timerId=null;cancelScheduledAudio();releaseWakeLock();buildPhases();$('timerStatus').textContent='Timer reset';paint()}
 function activate(w){pause();current=normalize(w);localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();$('timerStatus').textContent='✓ Workout loaded: '+current.name;showConfirmation('✓ Workout loaded');paint();showTab('timer')}
 function saveWorkout(apply=false){
   const w=readBuilder(),i=presets.findIndex(p=>p.id===editId);
