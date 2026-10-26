@@ -17,6 +17,19 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .tabs{display:flex;gap:7px;margin-bottom:16px}.tab{flex:1;border:1px solid var(--line);background:var(--panel);color:var(--muted);padding:11px;border-radius:12px;font-weight:700}.tab.active{background:var(--accent);color:#151711;border-color:var(--accent)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:13px}.timer{text-align:center;padding:22px 12px 18px}.phase{font-size:12px;letter-spacing:2px;font-weight:900;color:var(--accent);text-transform:uppercase}.time{font-size:clamp(68px,18vw,106px);font-weight:750;letter-spacing:-5px;font-variant-numeric:tabular-nums;line-height:1.15;margin:10px 0}.sub{color:var(--muted);font-size:14px}.progress{height:5px;background:#34383c;border-radius:10px;overflow:hidden;margin:18px 0 4px}.progress>div{height:100%;width:0;background:var(--accent);transition:width .15s linear}.controls{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px;margin-top:18px}.btn{border:1px solid var(--line);border-radius:12px;padding:13px 10px;background:var(--panel2);color:var(--text);font-weight:750;font-size:14px}.btn.primary{background:var(--accent);border-color:var(--accent);color:#151711}.btn.danger{color:var(--red)}.btn:disabled{opacity:.35}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}.field label{font-size:12px;color:var(--muted);font-weight:700}.field input,.field select,.field textarea{width:100%;background:#111314;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:12px;font:inherit;min-width:0}.field textarea{min-height:90px;resize:vertical}.row{display:flex;gap:8px;align-items:center}.row>*{flex:1;min-width:0}.preset{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}.preset:last-child{border:0}.preset strong{display:block}.preset small{display:block;color:var(--muted);margin-top:4px}.mini{font-size:12px;padding:9px 10px;white-space:nowrap}.muted{color:var(--muted)}.hidden{display:none!important}.notice{font-size:12px;color:var(--muted);margin:10px 2px}.status{font-size:12px;color:var(--muted);min-height:17px;margin-top:8px}.pill{border:1px solid var(--line);border-radius:99px;padding:5px 9px;font-size:11px;color:var(--muted)}.steps{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}.step{font-size:11px;border-radius:8px;background:var(--panel2);padding:7px 9px;color:var(--muted)}.step.current{background:var(--accent);color:#111}.footer{font-size:11px;text-align:center;color:#737b83;padding:14px 0 22px}
  .confirm-toast{position:fixed;bottom:calc(26px + env(safe-area-inset-bottom));left:50%;transform:translate(-50%,20px);width:max-content;max-width:calc(100% - 32px);background:var(--accent);color:#151711;padding:15px 22px;border-radius:14px;font-size:15px;font-weight:800;box-shadow:0 8px 30px #0009;z-index:99;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;text-align:center}.confirm-toast.visible{opacity:1;transform:translate(-50%,0)}
+
+.preset-groups{display:grid;gap:14px}.preset-group-title{font-size:12px;color:var(--muted);font-weight:800;letter-spacing:.6px;margin:14px 0 8px}
+.preset-card{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:13px;margin-bottom:9px}
+.preset-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
+.preset-card-info{min-width:0;flex:1}.preset-card-info strong{font-size:15px;display:block;overflow-wrap:anywhere}
+.preset-card-info small{font-size:12px;display:block;color:var(--muted);line-height:1.5;margin-top:5px}
+.preset-actions{display:flex;gap:8px;margin-top:10px}.preset-actions .btn{flex:1;min-width:0}
+.preset-more{position:relative;flex:0 0 auto}.preset-more summary{cursor:pointer;display:grid;place-items:center;list-style:none;width:38px;height:38px;border:1px solid var(--line);border-radius:10px;font-size:23px;font-weight:bold;user-select:none}.preset-more summary::-webkit-details-marker{display:none}
+.preset-more[open] summary{border-color:var(--accent)}.preset-more-menu{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:9px 0 0;padding-top:10px;border-top:1px solid var(--line)}
+.preset-menu-btn{padding:10px 6px;font-size:12px}.preset-badges{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap}.preset-badge{font-size:10px;color:var(--accent);border:1px solid #53672b;padding:3px 7px;border-radius:8px}
+.undo-bar,.import-review{background:var(--panel2);padding:12px;border:1px solid var(--line);border-radius:12px;margin:12px 0}.undo-bar{display:flex;align-items:center;gap:8px}.undo-bar span{flex:1;font-size:13px}.undo-bar .btn{flex:0 0 auto}
+.import-review .row{margin-top:10px}.import-review p{font-size:13px;margin:4px 0 8px}.file-input{width:100%;font-size:12px;color:var(--muted);margin:7px 0 0}.field-note{font-size:12px;color:var(--muted)}
+@media(max-width:360px){.preset-more-menu{grid-template-columns:1fr}.tabs .tab{padding:9px 4px;font-size:12px}}
 </style>
 </head>
 <body>
@@ -58,7 +71,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 <div class="field"><label for="lead">PREP COUNTDOWN (SEC)</label><input id="lead" type="number" min="0" max="60" value="10"></div>
 </div>
 <div class="field"><label for="cue">BEEP CUES</label><select id="cue"><option value="normal">Start/end + 3-second warning</option><option value="minimal">Start/end only</option><option value="off">Silent</option></select></div>
-<div class="row"><button class="btn" id="cancelEdit">Cancel</button><button class="btn primary" id="saveWorkout">Save workout</button></div>
+<p class="field-note">Saving won't interrupt your active timer. Choose Save &amp; Use to switch workouts.</p>
+<div class="row"><button class="btn" id="cancelEdit" type="button">Cancel</button><button class="btn" id="saveWorkout" type="button">Save preset</button><button class="btn primary" id="saveAndUse" type="button">Save &amp; Use</button></div>
 <div class="status" id="builderStatus"></div>
 </div>
 </section>
@@ -68,9 +82,15 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 <div class="row" style="margin-bottom:12px"><h2 style="margin:0">Saved presets</h2><button class="btn primary mini" id="addPreset" type="button">+ Add preset</button></div>
 <p>Presets stay on this device. Export a preset as a shareable text code or JSON file; send it to another climber, who can import it into their own copy.</p>
 <div id="presetList"></div>
-<div class="row" style="margin-top:12px"><button class="btn" id="exportAll">Export all</button><button class="btn" id="importTextBtn">Import code</button></div>
-<div class="field hidden" id="importArea" style="margin-top:12px"><label for="importCode">PASTE SHARED PRESET CODE OR JSON</label><textarea id="importCode" placeholder="Paste a preset code or exported JSON here"></textarea><button class="btn primary" id="doImport">Import preset</button></div>
-<div class="status" id="presetStatus"></div>
+<div id="undoDelete" class="undo-bar hidden" role="status" aria-live="polite"><span id="undoText"></span><button class="btn mini primary" id="undoDeleteBtn" type="button">Undo</button></div>
+<div class="row" style="margin-top:12px"><button class="btn" id="exportAll" type="button">Export backup</button><button class="btn" id="importTextBtn" type="button">Import</button></div>
+<div class="field hidden" id="importArea" style="margin-top:12px">
+<label for="importCode">PASTE SHARED PRESET CODE OR BACKUP JSON</label>
+<textarea id="importCode" placeholder="Paste a CLIMB1 code or backup JSON here"></textarea>
+<label for="importFile">OR SELECT A BACKUP FILE</label><input class="file-input" id="importFile" type="file" accept=".json,application/json">
+<button class="btn primary" id="doImport" type="button">Review import</button></div>
+<div class="import-review hidden" id="importPreview" aria-live="polite"><strong>Review import</strong><p id="importDetails"></p><div class="row"><button class="btn primary" id="importKeepBoth" type="button">Keep both</button><button class="btn" id="importReplace" type="button">Replace matches</button></div><button class="btn mini" id="cancelImport" type="button" style="margin-top:8px">Cancel import</button></div>
+<div class="status" id="presetStatus" aria-live="polite"></div>
 </div>
 <div class="panel">
 <h2>Share current workout</h2>
@@ -85,24 +105,31 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 </section>
 <div id="updateBanner" class="panel hidden" role="status" style="position:fixed;left:16px;right:16px;bottom:16px;z-index:98;max-width:648px;margin:auto"><div class="row"><span>New version available</span><button id="reloadUpdate" class="btn primary mini">Update</button></div></div>
 <div id="confirmToast" class="confirm-toast" role="status" aria-live="polite"></div>
-<div class="footer">CLIMB TIMER · Local presets · No account required</div>
+<div class="footer">CLIMB TIMER v12 · Local presets · No account required</div>
 
 <script>
 const $ = id => document.getElementById(id);
-const STORAGE_KEY='climbTimerPresets_v1', ACTIVE_KEY='climbTimerActive_v1', MIGRATION_KEY='climbTimerDefaultMigration_v10';
+const STORAGE_KEY='climbTimerPresets_v1', ACTIVE_KEY='climbTimerActive_v1', MIGRATION_KEY='climbTimerDefaultMigration_v10', FAV_KEY='climbTimerFavorites_v12';
 const starter={id:'p-1792577692759',name:'Repeat Hangs',hang:30,rest:10,reps:2,sets:4,setRest:120,lead:10,cue:'normal'};
 let presets=[], current={...starter}, phaseList=[], phaseIndex=0, remaining=0, running=false, ended=false, timerId=null, deadline=0, editId=null, lastSecond=null, audioCtx=null;
+let phaseNeedsStartCue=false;
+let favoriteIds=new Set(), pendingDeletion=null, undoDeleteTimer=null, editSourceTab='timer', pendingImport=null;
 let toastTimeout;let lastTickAt=0;function showConfirmation(message){const t=$('confirmToast');t.textContent=message;t.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.remove('visible'),2200)}
 function safeInt(id,min,max){let v=Number($(id).value);if(!Number.isFinite(v))v=min;return Math.max(min,Math.min(max,Math.round(v)))}
-function load(){try{presets=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{presets=[]}if(!Array.isArray(presets))presets=[];if(!presets.length)presets=[{...starter}];if(!localStorage.getItem(MIGRATION_KEY)){presets=presets.map(p=>p&&p.id===starter.id&&p.rest===6?{...p,rest:10}:p);try{const old=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'null');if(old&&old.id===starter.id&&old.rest===6)localStorage.setItem(ACTIVE_KEY,JSON.stringify({...old,rest:10}))}catch{}localStorage.setItem(MIGRATION_KEY,'1')}try{const a=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'null');if(a&&a.name)current=normalize(a)}catch{}persist();renderPresets();syncBuilder();buildPhases();paint()}
+function load(){try{presets=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{presets=[]}if(!Array.isArray(presets))presets=[];presets=presets.filter(p=>p&&typeof p==='object').map(normalize);if(!presets.length)presets=[{...starter}];try{const f=JSON.parse(localStorage.getItem(FAV_KEY)||'[]');favoriteIds=new Set(Array.isArray(f)?f.filter(id=>typeof id==='string'):[])}catch{favoriteIds=new Set()};if(!localStorage.getItem(MIGRATION_KEY)){presets=presets.map(p=>p&&p.id===starter.id&&p.rest===6?{...p,rest:10}:p);try{const old=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'null');if(old&&old.id===starter.id&&old.rest===6)localStorage.setItem(ACTIVE_KEY,JSON.stringify({...old,rest:10}))}catch{}localStorage.setItem(MIGRATION_KEY,'1')}try{const a=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'null');if(a&&a.name)current=normalize(a)}catch{}persist();renderPresets();syncBuilder();buildPhases();paint()}
 function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify(presets))}
+function persistFavorites(){localStorage.setItem(FAV_KEY,JSON.stringify([...favoriteIds]))}
+function newPresetId(){let id;do{id='p-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}while(presets.some(p=>p.id===id));return id}
+function copyName(name){let candidate=(name+' (copy)').slice(0,60),n=2;while(presets.some(p=>p.name.toLocaleLowerCase()===candidate.toLocaleLowerCase())){const suffix=' (copy '+n+++')';candidate=name.slice(0,60-suffix.length)+suffix}return candidate}
+function presetIsActive(p){return p.id===current.id&&['name','hang','rest','reps','sets','setRest','lead','cue'].every(k=>p[k]===current[k])}
+function rememberEditSource(){editSourceTab=document.querySelector('.tab.active')?.dataset.tab||'timer'}
 function normalize(x){return {id:String(x.id||('p-'+Date.now())),name:String(x.name||'Climbing workout').slice(0,60),hang:clamp(x.hang,1,3600,7),rest:clamp(x.rest,0,3600,3),reps:clamp(x.reps,1,100,6),sets:clamp(x.sets,1,50,3),setRest:clamp(x.setRest,0,7200,120),lead:clamp(x.lead,0,60,10),cue:['normal','minimal','off'].includes(x.cue)?x.cue:'normal'}}
 function clamp(v,min,max,def){v=Number(v);return Number.isFinite(v)?Math.max(min,Math.min(max,Math.round(v))):def}
 function syncBuilder(workout=current){for(const [id,key] of [['name','name'],['hang','hang'],['rest','rest'],['reps','reps'],['sets','sets'],['setRest','setRest'],['lead','lead'],['cue','cue']])$(id).value=workout[key]}
-function readBuilder(){return normalize({id:editId||('p-'+Date.now()),name:$('name').value.trim()||'Climbing workout',hang:safeInt('hang',1,3600),rest:safeInt('rest',0,3600),reps:safeInt('reps',1,100),sets:safeInt('sets',1,50),setRest:safeInt('setRest',0,7200),lead:safeInt('lead',0,60),cue:$('cue').value})}
+function readBuilder(){return normalize({id:editId||newPresetId(),name:$('name').value.trim()||'Climbing workout',hang:safeInt('hang',1,3600),rest:safeInt('rest',0,3600),reps:safeInt('reps',1,100),sets:safeInt('sets',1,50),setRest:safeInt('setRest',0,7200),lead:safeInt('lead',0,60),cue:$('cue').value})}
 function summary(w){return `${w.hang}s time · ${w.rest}s rest · ${w.reps} reps · ${w.sets} sets · ${w.setRest>=60?`${Math.floor(w.setRest/60)}m${w.setRest%60?` ${w.setRest%60}s`:''}`:`${w.setRest}s`} between sets`}
-function buildPhases(){phaseList=[];if(current.lead)phaseList.push({label:'GET READY',duration:current.lead,type:'lead',detail:'Get into position'});for(let s=1;s<=current.sets;s++){for(let r=1;r<=current.reps;r++){phaseList.push({label:'TIME',duration:current.hang,type:'work',detail:`Set ${s}/${current.sets} · Rep ${r}/${current.reps}`});if(current.rest>0&&(r<current.reps))phaseList.push({label:'REST',duration:current.rest,type:'rest',detail:`After rep ${r} · Set ${s}/${current.sets}`})}if(s<current.sets&&current.setRest>0)phaseList.push({label:'SET REST',duration:current.setRest,type:'setRest',detail:`Recover before set ${s+1}/${current.sets}`})}phaseIndex=0;remaining=phaseList[0]?.duration||0;ended=false;lastSecond=null}
-function paint(){const p=phaseList[phaseIndex];$('phase').textContent=ended?'COMPLETE':(p?.label||'READY');$('clock').textContent=fmt(Math.ceil(remaining));$('detail').textContent=ended?'Session complete. Nice work.':(p?.detail||'Choose a workout and press start');$('bar').style.width=p?`${Math.max(0,Math.min(1,1-remaining/p.duration))*100}%`:'0%';$('startBtn').textContent=running?'Pause':(phaseIndex===0&&remaining===(phaseList[0]?.duration||0)?'Start':'Resume');$('skipBtn').disabled=ended;$('currentName').textContent=current.name;$('workoutSummary').textContent=summary(current);$('stepDots').innerHTML=phaseList.slice(Math.max(0,phaseIndex-1),Math.min(phaseList.length,phaseIndex+3)).map((x,i)=>{const n=i+Math.max(0,phaseIndex-1);return `<span class="step ${n===phaseIndex?'current':''}">${n+1}. ${x.label}</span>`}).join('');}
+function buildPhases(){phaseList=[];if(current.lead)phaseList.push({label:'GET READY',duration:current.lead,type:'lead',detail:'Get into position'});for(let s=1;s<=current.sets;s++){for(let r=1;r<=current.reps;r++){phaseList.push({label:'TIME',duration:current.hang,type:'work',detail:`Set ${s}/${current.sets} · Rep ${r}/${current.reps}`});if(current.rest>0&&(r<current.reps))phaseList.push({label:'REST',duration:current.rest,type:'rest',detail:`After rep ${r} · Set ${s}/${current.sets}`})}if(s<current.sets&&current.setRest>0)phaseList.push({label:'SET REST',duration:current.setRest,type:'setRest',detail:`Recover before set ${s+1}/${current.sets}`})}phaseIndex=0;remaining=phaseList[0]?.duration||0;ended=false;lastSecond=null;phaseNeedsStartCue=false}
+function paint(){const p=phaseList[phaseIndex];$('phase').textContent=ended?'COMPLETE':(p?.label||'READY');$('clock').textContent=fmt(Math.ceil(remaining));$('detail').textContent=ended?'Session complete. Nice work.':(p?.detail||'Choose a workout and press start');$('bar').style.width=p?`${Math.max(0,Math.min(1,1-remaining/p.duration))*100}%`:'0%';$('startBtn').textContent=running?'Pause':(phaseIndex===0&&remaining===(phaseList[0]?.duration||0)?'Start':'Resume');$('skipBtn').disabled=ended;$('currentName').textContent=current.name;$('workoutSummary').textContent=summary(current);$('stepDots').innerHTML=phaseList.slice(Math.max(0,phaseIndex-1),Math.min(phaseList.length,phaseIndex+3)).map((x,i)=>{const n=i+Math.max(0,phaseIndex-1);return `<span class="step ${n===phaseIndex?'current':''}">${n+1}. ${x.label}</span>`}).join('');refreshUpdateNotice();}
 function fmt(s){s=Math.max(0,s|0);return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 // Audio is unlocked synchronously by the Start tap (required by iOS Safari).
 // A single master gain controls loudness; individual tones use a short envelope.
@@ -131,11 +158,11 @@ function cancelScheduledAudio(){
   }
   scheduledTones=[];
 }
-function beep(freq=880,dur=0.16){
+function beep(freq=880,dur=0.16,delay=0){
   if(current.cue==='off'||!audioCtx||!audioReady||audioCtx.state!=='running'||document.hidden)return;
   try{
     // Never queue a tone behind an earlier tone: late sounds must not spill into the next phase.
-    const t=audioCtx.currentTime+0.005;
+    const t=audioCtx.currentTime+Math.max(0,delay)+0.005;
     const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
     osc.type='square';osc.frequency.setValueAtTime(freq,t);
     gain.gain.setValueAtTime(0.0001,t);
@@ -148,18 +175,16 @@ function beep(freq=880,dur=0.16){
     osc.onended=()=>{scheduledTones=scheduledTones.filter(x=>x!==tone);osc.disconnect();gain.disconnect()};
   }catch(e){console.warn('Beep error',e)}
 }
-let lastCountdownSecond=null;
-function countdownBeep(second){
-  if(current.cue==='normal'&&second>=1&&second<=3&&lastCountdownSecond!==second){
-    lastCountdownSecond=second;beep(740,0.14);
+// Schedule the whole 3–2–1 sequence on the Web Audio clock at phase entry.
+// Browser JavaScript can pause briefly while audio scheduling continues on time.
+// All countdown cues use the same pitch, envelope and loudness.
+function schedulePhaseCountdown(){
+  if(!running||current.cue!=='normal'||document.hidden)return;
+  for(const second of [3,2,1]){
+    if(remaining+0.0001>=second){
+      beep(740,0.14,Math.max(0,remaining-second));
+    }
   }
-}
-function playCountdownCrossings(previous,now){
-  if(current.cue!=='normal'||document.hidden)return;
-  // Do not replay multiple missed beeps after a stalled frame.
-  const crossed=[3,2,1].filter(n=>previous>n&&now<=n);
-  if(crossed.length===1&&now>0)countdownBeep(crossed[0]);
-  // At the exact zero boundary, the phase transition beep takes precedence.
 }
 
 // Screen Wake Lock: available on supported HTTPS iOS Safari/Home Screen apps.
@@ -201,11 +226,17 @@ function start(){
   clearInterval(timerId);
   running=true;
   acquireWakeLock();
+  // A paused Skip enters a new phase silently; its start tone plays on Resume.
+  if(phaseNeedsStartCue){
+    const p=phaseList[phaseIndex];
+    beep(p.type==='work'?1250:560,0.32);
+    phaseNeedsStartCue=false;
+  }
   deadline=Date.now()+remaining*1000;
-  lastSecond=remaining;lastCountdownSecond=null;lastTickAt=Date.now();
-  // At the beginning of a 3-second phase, sound the first countdown cue.
-  if(remaining<=3 && remaining>0)countdownBeep(Math.ceil(remaining));
-  tick();timerId=setInterval(tick,80);paint();
+  lastSecond=remaining;lastTickAt=Date.now();
+  schedulePhaseCountdown();
+  tick();
+  timerId=setInterval(tick,80);paint();
 }
 function pause(){
   if(running)remaining=Math.max(0,(deadline-Date.now())/1000);
@@ -214,7 +245,6 @@ function pause(){
 function tick(){
   if(!running)return;
   const now=Date.now();
-  const oldRemaining=remaining;
   const phaseAtTick=phaseIndex;
   const delayed=lastTickAt>0&&now-lastTickAt>1500;lastTickAt=now;
   if(delayed)cancelScheduledAudio();
@@ -226,14 +256,11 @@ function tick(){
   }
   if(!running){paint();return}
   remaining=Math.max(0,(deadline-now)/1000);
-  const sec=Math.ceil(remaining);
-  // Only play countdown cues when crossing 3, 2, or 1 seconds.
-  // The transition beep is deliberately played only at zero.
-  if(phaseIndex===phaseAtTick&&!delayed)playCountdownCrossings(oldRemaining,remaining);
   lastSecond=remaining;
+  if(delayed||phaseAtTick!==phaseIndex)schedulePhaseCountdown();
   paint();
 }
-function advance(fromTimer=false,overrun=0){
+function advance(fromTimer=false,overrun=0,audible=true){
   if(ended)return;
   phaseIndex++;
   if(phaseIndex>=phaseList.length){
@@ -244,38 +271,237 @@ function advance(fromTimer=false,overrun=0){
   const next=phaseList[phaseIndex];
   remaining=next.duration;
   if(running){deadline=Date.now()+next.duration*1000-(fromTimer?overrun:0)}
-  lastSecond=remaining;lastCountdownSecond=null;cancelScheduledAudio();
-  if((!fromTimer||overrun<1500)&&!document.hidden){
+  lastSecond=remaining;cancelScheduledAudio();
+  phaseNeedsStartCue=!running;
+  if(audible&&(!fromTimer||overrun<1500)&&!document.hidden){
     beep(next.type==='work'?1250:560,0.32);
     // This distinct transition cue happens at 0, never at 1.
   }
+  if(running&&!fromTimer)schedulePhaseCountdown();
 }
 function reset(){running=false;clearInterval(timerId);timerId=null;cancelScheduledAudio();releaseWakeLock();buildPhases();$('timerStatus').textContent='Timer reset';paint()}
 function activate(w){pause();current=normalize(w);localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();$('timerStatus').textContent='✓ Workout loaded: '+current.name;showConfirmation('✓ Workout loaded');paint();showTab('timer')}
-function saveWorkout(){if(running)pause();const w=readBuilder();const i=presets.findIndex(p=>p.id===editId);if(i>=0)presets[i]=w;else presets.unshift(w);current=w;editId=null;persist();localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();renderPresets();paint();$('builderStatus').textContent='✓ Saved and applied';$('saveWorkout').textContent='Save workout';showTab('timer');$('timerStatus').textContent='✓ Settings saved and applied';showConfirmation('✓ Settings saved and applied')}
-function renderPresets(){$('presetList').innerHTML=presets.map(p=>`<div class="preset"><div><strong>${esc(p.name)}</strong><small>${esc(summary(p))}</small></div><div class="row" style="flex:0 0 auto"><button class="btn mini primary" data-load="${esc(p.id)}">Load</button><button class="btn mini" data-share="${esc(p.id)}">Share</button><button class="btn mini" data-edit="${esc(p.id)}">Edit</button><button class="btn mini danger" data-del="${esc(p.id)}">×</button></div></div>`).join('');}
+function saveWorkout(apply=false){
+  const w=readBuilder(),i=presets.findIndex(p=>p.id===editId);
+  if(i>=0)presets[i]=w;else presets.unshift(w);
+  persist();editId=null;$('saveWorkout').textContent='Save preset';
+  if(apply){activate(w);$('timerStatus').textContent='✓ Preset saved and loaded';showConfirmation('✓ Saved & now using '+w.name)}
+  else{showTab('presets');$('presetStatus').textContent='✓ Preset saved. Active workout unchanged.';showConfirmation('✓ Preset saved')}
+}
+function duplicatePreset(p){
+  const copied=normalize({...p,id:newPresetId(),name:copyName(p.name)});
+  const i=presets.findIndex(x=>x.id===p.id);presets.splice(i+1,0,copied);persist();renderPresets();
+  $('presetStatus').textContent='Duplicated '+p.name+'. The original is unchanged.';
+  showConfirmation('✓ Preset duplicated');
+}
+function toggleFavorite(id){
+  if(favoriteIds.has(id))favoriteIds.delete(id);else favoriteIds.add(id);
+  persistFavorites();renderPresets();
+}
+function movePreset(id,delta){
+  const i=presets.findIndex(p=>p.id===id);if(i<0)return;
+  const group=presets.filter(p=>favoriteIds.has(p.id)===favoriteIds.has(id));
+  const gi=group.findIndex(p=>p.id===id),other=group[gi+delta];if(!other)return;
+  const j=presets.findIndex(p=>p.id===other.id);[presets[i],presets[j]]=[presets[j],presets[i]];
+  persist();renderPresets();
+}
+function updateUndoNotice(){
+  $('undoDelete').classList.toggle('hidden',!pendingDeletion);
+  if(pendingDeletion)$('undoText').textContent='Deleted "'+pendingDeletion.item.name+'"';
+}
+function deletePreset(p){
+  if(presets.length<=1){$('presetStatus').textContent='Keep at least one preset.';return}
+  if(undoDeleteTimer)clearTimeout(undoDeleteTimer);
+  const index=presets.findIndex(x=>x.id===p.id);if(index<0)return;
+  pendingDeletion={item:p,index,wasFavorite:favoriteIds.has(p.id)};
+  presets.splice(index,1);favoriteIds.delete(p.id);persist();persistFavorites();renderPresets();updateUndoNotice();
+  $('presetStatus').textContent='Preset deleted. You can undo this action.';
+  undoDeleteTimer=setTimeout(()=>{pendingDeletion=null;updateUndoNotice()},15000);
+}
+function undoDeletion(){
+  if(!pendingDeletion)return;
+  const {item,index,wasFavorite}=pendingDeletion;
+  if(!presets.some(p=>p.id===item.id)){
+    presets.splice(Math.min(index,presets.length),0,item);
+    if(wasFavorite)favoriteIds.add(item.id);
+    persist();persistFavorites();
+  }
+  clearTimeout(undoDeleteTimer);pendingDeletion=null;updateUndoNotice();renderPresets();
+  $('presetStatus').textContent='✓ Preset restored.';showConfirmation('✓ Deletion undone');
+}
+function renderPresets(){
+  function renderGroup(items,label){
+    if(!items.length)return '';
+    return `<div class="preset-group"><div class="preset-group-title">${label} (${items.length})</div>${items.map((p,i)=>{
+      const id=esc(p.id),name=esc(p.name),fav=favoriteIds.has(p.id),active=presetIsActive(p);
+      return `<div class="preset-card" data-preset="${id}">
+        <div class="preset-card-header"><div class="preset-card-info"><strong>${name}</strong><small>${esc(summary(p))}</small><div class="preset-badges">${active?'<span class="preset-badge">CURRENT WORKOUT</span>':''}${fav?'<span class="preset-badge">★ FAVORITE</span>':''}</div></div>
+        <details class="preset-more"><summary aria-label="More actions for ${name}">···</summary></details></div>
+        <div class="preset-actions"><button class="btn mini" data-edit="${id}" type="button">Edit</button><button class="btn mini primary" data-load="${id}" type="button">Load workout</button></div>
+        <div class="preset-more-menu hidden" data-menu="${id}"><button class="btn preset-menu-btn" data-favorite="${id}" type="button">${fav?'★ Unfavorite':'☆ Favorite'}</button>
+        <button class="btn preset-menu-btn" data-duplicate="${id}" type="button">Duplicate</button>
+        <button class="btn preset-menu-btn" data-share="${id}" type="button">Share</button>
+        <button class="btn preset-menu-btn" data-up="${id}" type="button" ${i===0?'disabled':''}>Move up</button>
+        <button class="btn preset-menu-btn" data-down="${id}" type="button" ${i===items.length-1?'disabled':''}>Move down</button>
+        <button class="btn preset-menu-btn danger" data-del="${id}" type="button">Delete</button></div></div>`
+    }).join('')}</div>`;
+  }
+  const fav=presets.filter(p=>favoriteIds.has(p.id)),other=presets.filter(p=>!favoriteIds.has(p.id));
+  $('presetList').innerHTML=renderGroup(fav,'★ Favorites')+renderGroup(other,'Other presets');
+}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showTab(tab){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));['timer','builder','presets'].forEach(t=>$(t+'View').classList.toggle('hidden',t!==tab));if(tab==='presets')renderPresets()}
-function editWorkout(w){$('saveWorkout').textContent='Save workout';editId=w.id;syncBuilder(w);showTab('builder');$('builderStatus').textContent='Editing preset. Save to update it.'}
+function editWorkout(w){rememberEditSource();$('saveWorkout').textContent='Save preset';editId=w.id;syncBuilder(w);showTab('builder');$('builderStatus').textContent='Editing a draft. Save to update the preset; Save & Use to activate it.'}
 function encode(w){const bytes=new TextEncoder().encode(JSON.stringify(normalize(w)));let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));return 'CLIMB1-'+btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function decode(str){str=str.trim();if(str.startsWith('{'))return JSON.parse(str);if(!str.startsWith('CLIMB1-'))throw Error('Unrecognized code. Paste a CLIMB1 code or exported JSON.');let b=str.slice(7).replace(/-/g,'+').replace(/_/g,'/');b+='='.repeat((4-b.length%4)%4);const bin=atob(b);const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return JSON.parse(new TextDecoder().decode(bytes))}
 function share(w){$('shareArea').classList.remove('hidden');$('shareCode').value=encode(w);$('presetStatus').textContent='Share code generated.'}
 function download(name,content,type='application/json'){const a=document.createElement('a');const u=URL.createObjectURL(new Blob([content],{type}));a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
-$('startBtn').addEventListener('click',()=>running?pause():start());$('resetBtn').addEventListener('click',reset);$('skipBtn').addEventListener('click',()=>{if(ended)return;if(running){remaining=Math.max(0,(deadline-Date.now())/1000)}advance(false,0);paint()});
-$('addPreset').addEventListener('click',()=>{editId=null;syncBuilder();$('name').value='New workout';$('builderStatus').textContent='Create a new preset. Your current workout stays unchanged until you save.';$('saveWorkout').textContent='Save new preset';showTab('builder');$('name').focus();});
-$('saveWorkout').addEventListener('click',saveWorkout);$('cancelEdit').addEventListener('click',()=>{editId=null;$('saveWorkout').textContent='Save workout';syncBuilder();showTab('timer')});$('editCurrent').addEventListener('click',()=>editWorkout(current));
-$('presetList').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const p=presets.find(x=>x.id===b.dataset.load||x.id===b.dataset.edit||x.id===b.dataset.share||x.id===b.dataset.del);if(!p)return;if(b.dataset.load)activate(p);if(b.dataset.edit)editWorkout(p);if(b.dataset.share){share(p);$('shareArea').scrollIntoView({behavior:'smooth',block:'nearest'})}if(b.dataset.del){if(presets.length===1){$('presetStatus').textContent='Keep at least one preset.';return}presets=presets.filter(x=>x.id!==p.id);persist();renderPresets();$('presetStatus').textContent='Preset deleted.'}});
+function skipPhase(){
+  if(ended)return;
+  // While running, Skip continues directly into the next phase.
+  // While paused (or before Start), Skip selects the next full phase without starting it.
+  advance(false,0,running);
+  paint();
+}
+$('startBtn').addEventListener('click',()=>running?pause():start());$('resetBtn').addEventListener('click',reset);$('skipBtn').addEventListener('click',skipPhase);
+$('addPreset').addEventListener('click',()=>{
+  rememberEditSource();editId=null;syncBuilder();$('name').value='New workout';
+  $('builderStatus').textContent='New preset. Your active workout stays unchanged until Save & Use.';
+  $('saveWorkout').textContent='Save preset';showTab('builder');$('name').focus();
+});
+$('saveWorkout').addEventListener('click',()=>saveWorkout(false));
+$('saveAndUse').addEventListener('click',()=>saveWorkout(true));
+$('cancelEdit').addEventListener('click',()=>{editId=null;$('saveWorkout').textContent='Save preset';syncBuilder();showTab(editSourceTab)});
+$('editCurrent').addEventListener('click',()=>editWorkout(current));
+$('undoDeleteBtn').addEventListener('click',undoDeletion);
+$('presetList').addEventListener('click',e=>{
+  const summary=e.target.closest('summary');
+  if(summary){const card=summary.closest('.preset-card'),menu=card?.querySelector('.preset-more-menu');
+    if(menu)menu.classList.toggle('hidden',card.querySelector('details').open);return}
+  const b=e.target.closest('button');if(!b)return;
+  const actions=['load','edit','favorite','duplicate','share','up','down','del'];
+  const action=actions.find(a=>b.dataset[a]!==undefined);if(!action)return;
+  const p=presets.find(x=>x.id===b.dataset[action]);if(!p)return;
+  if(action==='load')activate(p);
+  else if(action==='edit')editWorkout(p);
+  else if(action==='favorite')toggleFavorite(p.id);
+  else if(action==='duplicate')duplicatePreset(p);
+  else if(action==='share'){share(p);$('shareArea').scrollIntoView({behavior:'smooth',block:'nearest'})}
+  else if(action==='up')movePreset(p.id,-1);
+  else if(action==='down')movePreset(p.id,1);
+  else if(action==='del')deletePreset(p);
+});
 $('shareCurrent').addEventListener('click',()=>share(current));$('copyShare').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('shareCode').value);$('presetStatus').textContent='Copied. Send the code in a message.'}catch{$('shareCode').select();$('presetStatus').textContent='Select and copy the code manually.'}});
-$('exportAll').addEventListener('click',()=>download('climb-timer-presets.json',JSON.stringify({format:'climb-timer-presets-v1',presets},null,2)));
-$('importTextBtn').addEventListener('click',()=>$('importArea').classList.toggle('hidden'));
-$('doImport').addEventListener('click',()=>{try{const raw=$('importCode').value.trim();let value=decode(raw);let incoming;if(value.format==='climb-timer-presets-v1'&&Array.isArray(value.presets))incoming=value.presets.map(normalize);else incoming=[normalize(value)];if(!incoming.length)throw Error('No presets found.');for(const w of incoming){w.id='p-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);const same=presets.findIndex(p=>p.name.toLowerCase()===w.name.toLowerCase());if(same>=0)presets[same]=w;else presets.unshift(w)}persist();renderPresets();$('presetStatus').textContent=`Imported ${incoming.length} preset${incoming.length===1?'':'s'}.`; $('importCode').value=''}catch(e){$('presetStatus').textContent='Import failed: '+e.message}});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&running)acquireWakeLock();else if(document.visibilityState!=='visible'){releaseWakeLock();wakeStatus('Screen awake paused while app is hidden')}if(!running)return;if(document.hidden){/* deadline-based timing keeps elapsed time measurable */}else{tick()}});
+$('exportAll').addEventListener('click',()=>download('climb-timer-presets.json',JSON.stringify({format:'climb-timer-presets-v1',presets,favorites:[...favoriteIds]},null,2)));
+$('importTextBtn').addEventListener('click',()=>{$('importArea').classList.toggle('hidden');clearImportPreview()});
+function clearImportPreview(){pendingImport=null;$('importPreview').classList.add('hidden')}
+function stageImport(raw){
+  clearImportPreview();
+  if(typeof raw!=='string'||raw.length>1048576)throw Error('File or code is too large (max 1 MB).');
+  const value=decode(raw),isBackup=value&&value.format==='climb-timer-presets-v1'&&Array.isArray(value.presets);
+  const source=isBackup?value.presets:[value];
+  if(!source.length||source.length>500)throw Error('Import must contain 1–500 presets.');
+  if(source.some(x=>!x||typeof x!=='object'||Array.isArray(x)||typeof x.name!=='string'||!x.name.trim()))throw Error('Invalid preset data.');
+  const items=source.map(normalize);
+  const favorites=new Set(isBackup&&Array.isArray(value.favorites)?value.favorites.filter(x=>typeof x==='string'):[]);
+  const conflicts=items.filter(item=>presets.some(p=>p.name.toLocaleLowerCase()===item.name.toLocaleLowerCase())).length;
+  pendingImport={items,favorites};
+  $('importDetails').textContent=`${items.length} preset${items.length===1?'':'s'} ready. ${conflicts?conflicts+' name conflict'+(conflicts===1?'':'s')+'. Choose to keep both or replace the matching saved presets.':'No matching names. Existing presets will be preserved.'}`;
+  $('importReplace').classList.toggle('hidden',conflicts===0);
+  $('importKeepBoth').textContent=conflicts?'Keep both':'Import presets';
+  $('importPreview').classList.remove('hidden');
+  $('presetStatus').textContent='Review and choose an import option.';
+}
+function finishImport(mode){
+  if(!pendingImport)return;
+  let added=0,replaced=0;
+  const existingByName=new Map(presets.map(p=>[p.name.toLocaleLowerCase(),p.id]));
+  const replacedNames=new Set();
+  for(const source of pendingImport.items){
+    const wasFavorite=pendingImport.favorites.has(source.id);
+    const key=source.name.toLocaleLowerCase();
+    const matchId=mode==='replace'&&!replacedNames.has(key)?existingByName.get(key):undefined;
+    const same=matchId===undefined?-1:presets.findIndex(p=>p.id===matchId);
+    if(same>=0){
+      const original=presets[same];presets[same]={...source,id:original.id};
+      if(wasFavorite)favoriteIds.add(original.id);replacedNames.add(key);replaced++;
+    }else{
+      const p={...source,id:newPresetId()};presets.unshift(p);
+      if(wasFavorite)favoriteIds.add(p.id);added++;
+    }
+  }
+  persist();persistFavorites();renderPresets();clearImportPreview();
+  $('importCode').value='';$('importFile').value='';
+  $('presetStatus').textContent=`✓ Imported ${added} preset${added===1?'':'s'}${replaced?', replaced '+replaced:''}. Active workout unchanged.`;
+  showConfirmation('✓ Presets imported');
+}
+$('importCode').addEventListener('input',clearImportPreview);
+$('doImport').addEventListener('click',()=>{try{stageImport($('importCode').value.trim())}catch(e){clearImportPreview();$('presetStatus').textContent='Import failed: '+e.message}});
+$('importFile').addEventListener('change',async()=>{
+  const file=$('importFile').files?.[0];if(!file)return;
+  if(file.size>1048576){$('presetStatus').textContent='Import failed: File exceeds 1 MB.';return}
+  try{const text=await file.text();stageImport(text);$('importCode').value=''}
+  catch(e){clearImportPreview();$('presetStatus').textContent='Import failed: '+e.message}
+});
+$('importKeepBoth').addEventListener('click',()=>finishImport('both'));
+$('importReplace').addEventListener('click',()=>finishImport('replace'));
+$('cancelImport').addEventListener('click',()=>{clearImportPreview();$('presetStatus').textContent='Import cancelled.'});
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&running)acquireWakeLock();
+  else if(document.visibilityState!=='visible'){
+    releaseWakeLock();wakeStatus('Screen awake paused while app is hidden');
+  }
+  if(!running)return;
+  if(document.hidden){cancelScheduledAudio();return}
+  const previousPhase=phaseIndex;
+  const delayed=lastTickAt>0&&Date.now()-lastTickAt>1500;
+  tick();
+  // tick() already reschedules after a stall or a phase change: do it only once.
+  if(running&&!delayed&&previousPhase===phaseIndex)schedulePhaseCountdown();
+});
 // No incomplete pagehide checkpoint: a page reload starts a fresh session.
+// A new worker waits until the user explicitly approves an update. The current
+// session is never interrupted by an automatic service-worker takeover.
+let updateRegistration=null, updateRequested=false;
+function workoutInProgress(){
+  return running||(!ended&&(phaseIndex>0||remaining<(phaseList[0]?.duration||0)-0.01));
+}
+function refreshUpdateNotice(){
+  const canUpdate=!!(updateRegistration?.waiting&&navigator.serviceWorker?.controller);
+  const busy=workoutInProgress();
+  $('updateBanner').classList.toggle('hidden',!canUpdate||busy);
+  $('reloadUpdate').disabled=!canUpdate||busy;
+}
 if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{$('updateBanner').classList.remove('hidden')});
-  $('reloadUpdate').addEventListener('click',()=>{if(running){pause()}location.reload()});
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{}));
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(updateRequested)location.reload();
+  });
+  $('reloadUpdate').addEventListener('click',()=>{
+    if(workoutInProgress()||!updateRegistration?.waiting)return;
+    updateRequested=true;
+    $('reloadUpdate').disabled=true;
+    $('reloadUpdate').textContent='Updating…';
+    updateRegistration.waiting.postMessage({type:'SKIP_WAITING'});
+  });
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>{
+      function checkWaiting(){
+        if(reg.waiting&&navigator.serviceWorker.controller){
+          updateRegistration=reg;
+          refreshUpdateNotice();
+        }
+      }
+      reg.addEventListener('updatefound',()=>{
+        const installing=reg.installing;
+        if(installing)installing.addEventListener('statechange',()=>{
+          if(installing.state==='installed')checkWaiting();
+        });
+      });
+      checkWaiting();
+      reg.update().catch(()=>{});
+    }).catch(()=>{});
+  });
 }
 if(location.protocol==='file:')$('offlineBadge').textContent='LOCAL PREVIEW';
 load();
