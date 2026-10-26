@@ -83,29 +83,30 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 <p>For true offline use, the app must first be hosted over HTTPS and opened once while online so its files can be cached. On iPhone, use Safari → Share → Add to Home Screen. Local file previews do not reliably support offline caching or installation.</p>
 </div>
 </section>
+<div id="updateBanner" class="panel hidden" role="status" style="position:fixed;left:16px;right:16px;bottom:16px;z-index:98;max-width:648px;margin:auto"><div class="row"><span>New version available</span><button id="reloadUpdate" class="btn primary mini">Update</button></div></div>
 <div id="confirmToast" class="confirm-toast" role="status" aria-live="polite"></div>
 <div class="footer">CLIMB TIMER · Local presets · No account required</div>
 
 <script>
 const $ = id => document.getElementById(id);
-const STORAGE_KEY='climbTimerPresets_v1', ACTIVE_KEY='climbTimerActive_v1';
+const STORAGE_KEY='climbTimerPresets_v1', ACTIVE_KEY='climbTimerActive_v1', MIGRATION_KEY='climbTimerDefaultMigration_v10';
 const starter={id:'p-1792577692759',name:'Repeat Hangs',hang:30,rest:10,reps:2,sets:4,setRest:120,lead:10,cue:'normal'};
 let presets=[], current={...starter}, phaseList=[], phaseIndex=0, remaining=0, running=false, ended=false, timerId=null, deadline=0, editId=null, lastSecond=null, audioCtx=null;
-let toastTimeout;function showConfirmation(message){const t=$('confirmToast');t.textContent=message;t.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.remove('visible'),2200)}
+let toastTimeout;let lastTickAt=0;function showConfirmation(message){const t=$('confirmToast');t.textContent=message;t.classList.add('visible');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>t.classList.remove('visible'),2200)}
 function safeInt(id,min,max){let v=Number($(id).value);if(!Number.isFinite(v))v=min;return Math.max(min,Math.min(max,Math.round(v)))}
-function load(){try{presets=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{presets=[]}if(!Array.isArray(presets))presets=[];if(!presets.length)presets=[{...starter}];presets=presets.map(p=>p&&(p.id===starter.id||p.name==='Repeat Hangs')?{...p,rest:10,lead:10}:p);try{const a=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'null');if(a&&a.name)current=normalize((a.id===starter.id||a.name==='Repeat Hangs')?{...a,rest:10,lead:10}:a)}catch{}persist();renderPresets();syncBuilder();buildPhases();paint()}
+function load(){try{presets=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{presets=[]}if(!Array.isArray(presets))presets=[];if(!presets.length)presets=[{...starter}];if(!localStorage.getItem(MIGRATION_KEY)){presets=presets.map(p=>p&&p.id===starter.id&&p.rest===6?{...p,rest:10}:p);try{const old=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'null');if(old&&old.id===starter.id&&old.rest===6)localStorage.setItem(ACTIVE_KEY,JSON.stringify({...old,rest:10}))}catch{}localStorage.setItem(MIGRATION_KEY,'1')}try{const a=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'null');if(a&&a.name)current=normalize(a)}catch{}persist();renderPresets();syncBuilder();buildPhases();paint()}
 function persist(){localStorage.setItem(STORAGE_KEY,JSON.stringify(presets))}
 function normalize(x){return {id:String(x.id||('p-'+Date.now())),name:String(x.name||'Climbing workout').slice(0,60),hang:clamp(x.hang,1,3600,7),rest:clamp(x.rest,0,3600,3),reps:clamp(x.reps,1,100,6),sets:clamp(x.sets,1,50,3),setRest:clamp(x.setRest,0,7200,120),lead:clamp(x.lead,0,60,10),cue:['normal','minimal','off'].includes(x.cue)?x.cue:'normal'}}
 function clamp(v,min,max,def){v=Number(v);return Number.isFinite(v)?Math.max(min,Math.min(max,Math.round(v))):def}
-function syncBuilder(){for(const [id,key] of [['name','name'],['hang','hang'],['rest','rest'],['reps','reps'],['sets','sets'],['setRest','setRest'],['lead','lead'],['cue','cue']])$(id).value=current[key]}
+function syncBuilder(workout=current){for(const [id,key] of [['name','name'],['hang','hang'],['rest','rest'],['reps','reps'],['sets','sets'],['setRest','setRest'],['lead','lead'],['cue','cue']])$(id).value=workout[key]}
 function readBuilder(){return normalize({id:editId||('p-'+Date.now()),name:$('name').value.trim()||'Climbing workout',hang:safeInt('hang',1,3600),rest:safeInt('rest',0,3600),reps:safeInt('reps',1,100),sets:safeInt('sets',1,50),setRest:safeInt('setRest',0,7200),lead:safeInt('lead',0,60),cue:$('cue').value})}
 function summary(w){return `${w.hang}s time · ${w.rest}s rest · ${w.reps} reps · ${w.sets} sets · ${w.setRest>=60?`${Math.floor(w.setRest/60)}m${w.setRest%60?` ${w.setRest%60}s`:''}`:`${w.setRest}s`} between sets`}
 function buildPhases(){phaseList=[];if(current.lead)phaseList.push({label:'GET READY',duration:current.lead,type:'lead',detail:'Get into position'});for(let s=1;s<=current.sets;s++){for(let r=1;r<=current.reps;r++){phaseList.push({label:'TIME',duration:current.hang,type:'work',detail:`Set ${s}/${current.sets} · Rep ${r}/${current.reps}`});if(current.rest>0&&(r<current.reps))phaseList.push({label:'REST',duration:current.rest,type:'rest',detail:`After rep ${r} · Set ${s}/${current.sets}`})}if(s<current.sets&&current.setRest>0)phaseList.push({label:'SET REST',duration:current.setRest,type:'setRest',detail:`Recover before set ${s+1}/${current.sets}`})}phaseIndex=0;remaining=phaseList[0]?.duration||0;ended=false;lastSecond=null}
-function paint(){const p=phaseList[phaseIndex];$('phase').textContent=ended?'COMPLETE':(p?.label||'READY');$('clock').textContent=fmt(Math.ceil(remaining));$('detail').textContent=ended?'Session complete. Nice work.':(p?.detail||'Choose a workout and press start');$('bar').style.width=p?`${Math.max(0,Math.min(1,1-remaining/p.duration))*100}%`:'0%';$('startBtn').textContent=running?'Pause':(phaseIndex===0&&remaining===(phaseList[0]?.duration||0)?'Start':'Resume');$('skipBtn').disabled=ended;$('currentName').textContent=current.name;$('workoutSummary').textContent=summary(current);$('stepDots').innerHTML=phaseList.slice(0,14).map((x,i)=>`<span class="step ${i===phaseIndex?'current':''}">${i+1}. ${x.label}</span>`).join('')+(phaseList.length>14?`<span class="step">+${phaseList.length-14} phases</span>`:'');}
+function paint(){const p=phaseList[phaseIndex];$('phase').textContent=ended?'COMPLETE':(p?.label||'READY');$('clock').textContent=fmt(Math.ceil(remaining));$('detail').textContent=ended?'Session complete. Nice work.':(p?.detail||'Choose a workout and press start');$('bar').style.width=p?`${Math.max(0,Math.min(1,1-remaining/p.duration))*100}%`:'0%';$('startBtn').textContent=running?'Pause':(phaseIndex===0&&remaining===(phaseList[0]?.duration||0)?'Start':'Resume');$('skipBtn').disabled=ended;$('currentName').textContent=current.name;$('workoutSummary').textContent=summary(current);$('stepDots').innerHTML=phaseList.slice(Math.max(0,phaseIndex-1),Math.min(phaseList.length,phaseIndex+3)).map((x,i)=>{const n=i+Math.max(0,phaseIndex-1);return `<span class="step ${n===phaseIndex?'current':''}">${n+1}. ${x.label}</span>`}).join('');}
 function fmt(s){s=Math.max(0,s|0);return `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`}
 // Audio is unlocked synchronously by the Start tap (required by iOS Safari).
 // A single master gain controls loudness; individual tones use a short envelope.
-let masterGain=null, audioReady=false, nextToneAt=0;
+let masterGain=null, audioReady=false, scheduledTones=[];
 function unlockAudio(){
   if(current.cue==='off')return;
   try{
@@ -113,45 +114,52 @@ function unlockAudio(){
       const AudioContextClass=window.AudioContext||window.webkitAudioContext;
       if(!AudioContextClass)throw Error('Web Audio unsupported');
       audioCtx=new AudioContextClass();
-      masterGain=audioCtx.createGain();masterGain.gain.value=0.9;
+      masterGain=audioCtx.createGain();masterGain.gain.value=0.8;
       masterGain.connect(audioCtx.destination);
     }
     if(audioCtx.state!=='running')audioCtx.resume().catch(()=>{});
-    // A silent oscillator initiated within the user gesture unlocks iOS audio.
-    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-    g.gain.value=0;o.connect(g);g.connect(masterGain);
-    o.start();o.stop(audioCtx.currentTime+0.015);
-    o.onended=()=>{o.disconnect();g.disconnect()};
+    const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
+    gain.gain.value=0;osc.connect(gain);gain.connect(masterGain);
+    osc.start();osc.stop(audioCtx.currentTime+0.012);
+    osc.onended=()=>{osc.disconnect();gain.disconnect()};
     audioReady=true;
   }catch(e){$('timerStatus').textContent='Audio unavailable: '+e.message}
 }
+function cancelScheduledAudio(){
+  for(const tone of scheduledTones){
+    try{tone.gain.gain.cancelScheduledValues(audioCtx.currentTime);tone.gain.gain.setValueAtTime(0,audioCtx.currentTime);tone.osc.stop()}catch{}
+  }
+  scheduledTones=[];
+}
 function beep(freq=880,dur=0.16){
-  if(current.cue==='off'||!audioCtx||!audioReady)return;
+  if(current.cue==='off'||!audioCtx||!audioReady||audioCtx.state!=='running'||document.hidden)return;
   try{
-    if(audioCtx.state!=='running'){audioCtx.resume().catch(()=>{});return}
-    const t=Math.max(audioCtx.currentTime+0.005,nextToneAt);
-    nextToneAt=t+dur+0.015;
+    // Never queue a tone behind an earlier tone: late sounds must not spill into the next phase.
+    const t=audioCtx.currentTime+0.005;
     const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();
     osc.type='square';osc.frequency.setValueAtTime(freq,t);
     gain.gain.setValueAtTime(0.0001,t);
-    gain.gain.linearRampToValueAtTime(0.34,t+0.008);
-    gain.gain.setValueAtTime(0.34,t+Math.max(0.009,dur-0.035));
+    gain.gain.linearRampToValueAtTime(0.32,t+0.008);
+    gain.gain.setValueAtTime(0.32,t+Math.max(0.009,dur-0.035));
     gain.gain.exponentialRampToValueAtTime(0.0001,t+dur);
     osc.connect(gain);gain.connect(masterGain);
+    const tone={osc,gain};scheduledTones.push(tone);
     osc.start(t);osc.stop(t+dur+0.01);
-    osc.onended=()=>{osc.disconnect();gain.disconnect()};
+    osc.onended=()=>{scheduledTones=scheduledTones.filter(x=>x!==tone);osc.disconnect();gain.disconnect()};
   }catch(e){console.warn('Beep error',e)}
 }
-// All countdown tones are identical. A phase transition is a separate cue at 0.
+let lastCountdownSecond=null;
 function countdownBeep(second){
-  if(current.cue==='normal' && second>=1 && second<=3)beep(740,0.14);
-}
-// Track boundaries crossed, rather than relying on one exact animation tick.
-function playCountdownCrossings(previous, now){
-  if(current.cue!=='normal')return;
-  for(const boundary of [3,2,1]){
-    if(previous>boundary && now<=boundary && now>0)countdownBeep(boundary);
+  if(current.cue==='normal'&&second>=1&&second<=3&&lastCountdownSecond!==second){
+    lastCountdownSecond=second;beep(740,0.14);
   }
+}
+function playCountdownCrossings(previous,now){
+  if(current.cue!=='normal'||document.hidden)return;
+  // Do not replay multiple missed beeps after a stalled frame.
+  const crossed=[3,2,1].filter(n=>previous>n&&now<=n);
+  if(crossed.length===1&&now>0)countdownBeep(crossed[0]);
+  // At the exact zero boundary, the phase transition beep takes precedence.
 }
 
 // Screen Wake Lock: available on supported HTTPS iOS Safari/Home Screen apps.
@@ -194,20 +202,22 @@ function start(){
   running=true;
   acquireWakeLock();
   deadline=Date.now()+remaining*1000;
-  lastSecond=remaining;
+  lastSecond=remaining;lastCountdownSecond=null;lastTickAt=Date.now();
   // At the beginning of a 3-second phase, sound the first countdown cue.
   if(remaining<=3 && remaining>0)countdownBeep(Math.ceil(remaining));
   tick();timerId=setInterval(tick,80);paint();
 }
 function pause(){
   if(running)remaining=Math.max(0,(deadline-Date.now())/1000);
-  running=false;clearInterval(timerId);timerId=null;releaseWakeLock();paint();
+  running=false;clearInterval(timerId);timerId=null;cancelScheduledAudio();releaseWakeLock();paint();
 }
 function tick(){
   if(!running)return;
   const now=Date.now();
   const oldRemaining=remaining;
   const phaseAtTick=phaseIndex;
+  const delayed=lastTickAt>0&&now-lastTickAt>1500;lastTickAt=now;
+  if(delayed)cancelScheduledAudio();
   // Carry elapsed time into subsequent phases instead of restarting a late phase.
   let hops=0;
   while(running&&now>=deadline&&hops++<phaseList.length+1){
@@ -219,7 +229,7 @@ function tick(){
   const sec=Math.ceil(remaining);
   // Only play countdown cues when crossing 3, 2, or 1 seconds.
   // The transition beep is deliberately played only at zero.
-  if(phaseIndex===phaseAtTick)playCountdownCrossings(oldRemaining,remaining);
+  if(phaseIndex===phaseAtTick&&!delayed)playCountdownCrossings(oldRemaining,remaining);
   lastSecond=remaining;
   paint();
 }
@@ -227,26 +237,26 @@ function advance(fromTimer=false,overrun=0){
   if(ended)return;
   phaseIndex++;
   if(phaseIndex>=phaseList.length){
-    running=false;ended=true;clearInterval(timerId);timerId=null;remaining=0;releaseWakeLock();
-    if(fromTimer&&overrun<1500)beep(1250,0.38);
+    running=false;ended=true;clearInterval(timerId);timerId=null;remaining=0;releaseWakeLock();cancelScheduledAudio();
+    if(fromTimer&&overrun<1500&&!document.hidden)beep(1250,0.38);
     $('timerStatus').textContent='Workout finished';return;
   }
   const next=phaseList[phaseIndex];
   remaining=next.duration;
   if(running){deadline=Date.now()+next.duration*1000-(fromTimer?overrun:0)}
-  lastSecond=remaining;
-  if(!fromTimer||overrun<1500){
+  lastSecond=remaining;lastCountdownSecond=null;cancelScheduledAudio();
+  if((!fromTimer||overrun<1500)&&!document.hidden){
     beep(next.type==='work'?1250:560,0.32);
     // This distinct transition cue happens at 0, never at 1.
   }
 }
-function reset(){running=false;clearInterval(timerId);timerId=null;releaseWakeLock();buildPhases();$('timerStatus').textContent='Timer reset';paint()}
+function reset(){running=false;clearInterval(timerId);timerId=null;cancelScheduledAudio();releaseWakeLock();buildPhases();$('timerStatus').textContent='Timer reset';paint()}
 function activate(w){pause();current=normalize(w);localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();$('timerStatus').textContent='✓ Workout loaded: '+current.name;showConfirmation('✓ Workout loaded');paint();showTab('timer')}
-function saveWorkout(){const w=readBuilder();const i=presets.findIndex(p=>p.id===editId);if(i>=0)presets[i]=w;else presets.unshift(w);current=w;editId=null;persist();localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();renderPresets();paint();$('builderStatus').textContent='✓ Saved and applied';$('saveWorkout').textContent='Save workout';showTab('timer');$('timerStatus').textContent='✓ Settings saved and applied';showConfirmation('✓ Settings saved and applied')}
+function saveWorkout(){if(running)pause();const w=readBuilder();const i=presets.findIndex(p=>p.id===editId);if(i>=0)presets[i]=w;else presets.unshift(w);current=w;editId=null;persist();localStorage.setItem(ACTIVE_KEY,JSON.stringify(current));syncBuilder();buildPhases();renderPresets();paint();$('builderStatus').textContent='✓ Saved and applied';$('saveWorkout').textContent='Save workout';showTab('timer');$('timerStatus').textContent='✓ Settings saved and applied';showConfirmation('✓ Settings saved and applied')}
 function renderPresets(){$('presetList').innerHTML=presets.map(p=>`<div class="preset"><div><strong>${esc(p.name)}</strong><small>${esc(summary(p))}</small></div><div class="row" style="flex:0 0 auto"><button class="btn mini primary" data-load="${esc(p.id)}">Load</button><button class="btn mini" data-share="${esc(p.id)}">Share</button><button class="btn mini" data-edit="${esc(p.id)}">Edit</button><button class="btn mini danger" data-del="${esc(p.id)}">×</button></div></div>`).join('');}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function showTab(tab){document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));['timer','builder','presets'].forEach(t=>$(t+'View').classList.toggle('hidden',t!==tab));if(tab==='presets')renderPresets()}
-function editWorkout(w){$('saveWorkout').textContent='Save workout';pause();editId=w.id;current=normalize(w);syncBuilder();showTab('builder');$('builderStatus').textContent='Editing preset. Save to update it.'}
+function editWorkout(w){$('saveWorkout').textContent='Save workout';editId=w.id;syncBuilder(w);showTab('builder');$('builderStatus').textContent='Editing preset. Save to update it.'}
 function encode(w){const bytes=new TextEncoder().encode(JSON.stringify(normalize(w)));let bin='';bytes.forEach(b=>bin+=String.fromCharCode(b));return 'CLIMB1-'+btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
 function decode(str){str=str.trim();if(str.startsWith('{'))return JSON.parse(str);if(!str.startsWith('CLIMB1-'))throw Error('Unrecognized code. Paste a CLIMB1 code or exported JSON.');let b=str.slice(7).replace(/-/g,'+').replace(/_/g,'/');b+='='.repeat((4-b.length%4)%4);const bin=atob(b);const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));return JSON.parse(new TextDecoder().decode(bytes))}
 function share(w){$('shareArea').classList.remove('hidden');$('shareCode').value=encode(w);$('presetStatus').textContent='Share code generated.'}
@@ -260,9 +270,13 @@ $('shareCurrent').addEventListener('click',()=>share(current));$('copyShare').ad
 $('exportAll').addEventListener('click',()=>download('climb-timer-presets.json',JSON.stringify({format:'climb-timer-presets-v1',presets},null,2)));
 $('importTextBtn').addEventListener('click',()=>$('importArea').classList.toggle('hidden'));
 $('doImport').addEventListener('click',()=>{try{const raw=$('importCode').value.trim();let value=decode(raw);let incoming;if(value.format==='climb-timer-presets-v1'&&Array.isArray(value.presets))incoming=value.presets.map(normalize);else incoming=[normalize(value)];if(!incoming.length)throw Error('No presets found.');for(const w of incoming){w.id='p-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7);const same=presets.findIndex(p=>p.name.toLowerCase()===w.name.toLowerCase());if(same>=0)presets[same]=w;else presets.unshift(w)}persist();renderPresets();$('presetStatus').textContent=`Imported ${incoming.length} preset${incoming.length===1?'':'s'}.`; $('importCode').value=''}catch(e){$('presetStatus').textContent='Import failed: '+e.message}});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&running)acquireWakeLock();else if(document.visibilityState!=='visible'){wakeLock=null;wakeStatus('Screen awake paused while app is hidden')}if(!running)return;if(document.hidden){/* deadline-based timing keeps elapsed time measurable */}else{remaining=Math.max(0,(deadline-Date.now())/1000);tick()}});
-window.addEventListener('pagehide',()=>{if(running){try{localStorage.setItem('climbTimerRun_v1',JSON.stringify({current,phaseIndex,deadline}))}catch{}}});
-if('serviceWorker' in navigator && location.protocol.startsWith('http'))window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&running)acquireWakeLock();else if(document.visibilityState!=='visible'){releaseWakeLock();wakeStatus('Screen awake paused while app is hidden')}if(!running)return;if(document.hidden){/* deadline-based timing keeps elapsed time measurable */}else{tick()}});
+// No incomplete pagehide checkpoint: a page reload starts a fresh session.
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{$('updateBanner').classList.remove('hidden')});
+  $('reloadUpdate').addEventListener('click',()=>{if(running){pause()}location.reload()});
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(reg=>reg.update()).catch(()=>{}));
+}
 if(location.protocol==='file:')$('offlineBadge').textContent='LOCAL PREVIEW';
 load();
 </script>
